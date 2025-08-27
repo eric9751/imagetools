@@ -51,7 +51,7 @@ body {
 }
 
 .container {
-    max-width: 1440px;
+    max-width: 1440px; /* 调整最大宽度以适应三列 */
     margin: 0 auto;
     padding: 8rem 2rem 2rem;
 }
@@ -77,7 +77,7 @@ body {
 
 .cards-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); /* 调整为自适应三列 */
     gap: 2rem;
     margin-bottom: 3rem;
 }
@@ -235,7 +235,7 @@ body {
 
 .btn-full {
     width: 100%;
-    margin-top: 2rem;
+    margin-top: 2rem; /* 为按钮添加顶部间距 */
 }
 
 .btn:hover {
@@ -292,7 +292,7 @@ body {
 }
 
 .preview-area {
-    grid-column: span 3;
+    grid-column: span 3; /* 让预览区域跨越三列 */
     background: rgba(255, 255, 255, 0.03);
     border-radius: 15px;
     padding: 2rem;
@@ -340,6 +340,7 @@ body {
     transition: width 0.3s ease;
 }
 
+/* 新增：图片放大模态框样式 */
 .modal {
     display: none;
     position: fixed;
@@ -373,12 +374,26 @@ body {
   to { opacity: 1; }
 }
 
-@media (max-width: 1200px) {
+.footer {
+    text-align: center;
+    padding: 2rem;
+    margin-top: 3rem;
+    background: rgba(15, 15, 35, 0.5); /* 匹配背景的暗色 */
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.footer p {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 1200px) { /* 调整响应式断点 */
     .cards-grid {
-        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); /* 在小屏幕上仍然保持自适应 */
     }
     .preview-area {
-        grid-column: 1 / -1;
+        grid-column: 1 / -1; /* 在小屏幕上预览区域仍然占满 */
     }
 }
 @media (max-width: 768px) {
@@ -391,16 +406,4 @@ body {
     .title h1 {
         font-size: 2rem;
     }
-}
-.footer {
-    background-color: #333;
-    color: #fff;
-    text-align: center;
-    padding: 20px;
-    margin-top: 40px;
-    font-size: 0.9em;
-}
-
-.footer p {
-    margin: 5px 0;
 }
