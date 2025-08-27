@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图像处理工具 Pro</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="logo" data-lang-key="logo">图像处理工具 Pro</div>
+        <button class="lang-switch" data-lang-key="langBtn">English</button>
+    </header>
+
+    <div class="container">
+        <div class="title">
+            <h1 data-lang-key="title">专业图像处理套件</h1>
+            <p data-lang-key="subtitle">一站式图像处理解决方案，支持批量操作和多种格式转换</p>
+        </div>
+
+        <div class="cards-grid">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">📁</div>
+                    <h3 class="card-title" data-lang-key="upload">文件上传</h3>
+                </div>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">⬆️</div>
+                    <h4 data-lang-key="uploadText">点击或拖拽上传图片</h4>
+                    <p data-lang-key="uploadDesc">支持 JPG, PNG, WEBP 格式</p>
+                </div>
+                <input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/webp" style="display: none;">
+                <div id="fileList" style="margin-top: 1rem; max-height: 200px; overflow-y: auto;"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">📐</div>
+                    <h3 class="card-title" data-lang-key="resolution">分辨率调整</h3>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-lang-key="resolutionPreset">预设分辨率</label>
+                    <select class="form-input form-select" id="resolutionPreset">
+                        <option value="custom" data-lang-key="custom">自定义</option>
+                        <option value="1920x1080">1920×1080 (1080p)</option>
+                        <option value="1280x720">1280×720 (720p)</option>
+                        <option value="800x600">800×600</option>
+                        <option value="640x480">640×480</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-lang-key="width">宽度</label>
+                    <input type="number" class="form-input" id="customWidth" placeholder="1920">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-lang-key="height">高度</label>
+                    <input type="number" class="form-input" id="customHeight" placeholder="1080">
+                </div>
+                <button class="btn btn-full" onclick="applyResolution()" data-lang-key="applyRes">应用分辨率</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">🔄</div>
+                    <h3 class="card-title" data-lang-key="format">格式与质量</h3>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-lang-key="targetFormat">目标格式</label>
+                    <select class="form-input form-select" id="targetFormat">
+                        <option value="jpeg">JPEG</option>
+                        <option value="png">PNG</option>
+                        <option value="webp">WEBP</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-lang-key="quality">质量 (JPEG/WebP): <span id="qualityValue">90</span>%</label>
+                    <input type="range" class="slider" id="qualitySlider" min="10" max="100" value="90">
+                </div>
+                 <button class="btn btn-full" onclick="convertFormat()" data-lang-key="convertBtn">转换格式</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">🗜️</div>
+                    <h3 class="card-title" data-lang-key="compress">图片压缩</h3>
+                </div>
+                <div class="form-group">
+                    <p style="opacity: 0.8; font-size: 0.9em; margin-bottom: 1rem;" data-lang-key="compressDesc">通过调整图像质量来减小文件大小。此设置与“格式与质量”面板中的质量同步。</p>
+                    <label class="form-label" data-lang-key="compressLevel">压缩级别: <span id="compressionValue">90</span>%</label>
+                    <input type="range" class="slider" id="compressionSlider" min="10" max="100" value="90">
+                </div>
+                <button class="btn btn-full" onclick="compressImages()" data-lang-key="applyCompress">应用压缩</button>
+            </div>
+
+            <div class="card">
+                 <div class="card-header">
+                    <div class="card-icon">✨</div>
+                    <h3 class="card-title" data-lang-key="beautify">图片美化</h3>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-lang-key="brightness">亮度: <span id="brightnessValue">100</span>%</label>
+                    <input type="range" class="slider beautify-slider" id="brightnessSlider" min="0" max="200" value="100" data-filter="brightness" data-unit="%">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-lang-key="contrast">对比度: <span id="contrastValue">100</span>%</label>
+                    <input type="range" class="slider beautify-slider" id="contrastSlider" min="0" max="200" value="100" data-filter="contrast" data-unit="%">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-lang-key="saturate">饱和度: <span id="saturateValue">100</span>%</label>
+                    <input type="range" class="slider beautify-slider" id="saturateSlider" min="0" max="200" value="100" data-filter="saturate" data-unit="%">
+                </div>
+                 <div class="form-group">
+                    <label class="form-label" data-lang-key="grayscale">灰度: <span id="grayscaleValue">0</span>%</label>
+                    <input type="range" class="slider beautify-slider" id="grayscaleSlider" min="0" max="100" value="0" data-filter="grayscale" data-unit="%">
+                </div>
+                 <button class="btn btn-secondary btn-full" onclick="resetFilters()" data-lang-key="resetFilters" style="margin-top: 1rem;">重置美化</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">🏷️</div>
+                    <h3 class="card-title" data-lang-key="watermark">水印设置</h3>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-lang-key="watermarkText">水印文字</label>
+                    <input type="text" class="form-input" id="watermarkText" placeholder="© Your Name 2025">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-lang-key="watermarkSize">水印大小: <span id="fontSizeValue">5</span>%</label>
+                    <input type="range" class="slider" id="fontSizeSlider" min="1" max="20" value="5">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-lang-key="opacity">透明度: <span id="opacityValue">70</span>%</label>
+                    <input type="range" class="slider" id="opacitySlider" min="10" max="100" value="70">
+                </div>
+                 <div class="form-group color-picker-wrapper">
+                     <label class="form-label" data-lang-key="watermarkColor">颜色</label>
+                    <input type="color" class="color-picker" id="watermarkColor" value="#ffffff">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-lang-key="watermarkPos">水印位置</label>
+                    <div class="position-grid">
+                        <div class="position-btn" onclick="selectPosition(this, 'top-left')" data-lang-key="posTL">左上</div>
+                        <div class="position-btn" onclick="selectPosition(this, 'top-center')" data-lang-key="posTC">上中</div>
+                        <div class="position-btn" onclick="selectPosition(this, 'top-right')" data-lang-key="posTR">右上</div>
+                        <div class="position-btn" onclick="selectPosition(this, 'center-left')" data-lang-key="posCL">左中</div>
+                        <div class="position-btn active" onclick="selectPosition(this, 'center')" data-lang-key="posC">居中</div>
+                        <div class="position-btn" onclick="selectPosition(this, 'center-right')" data-lang-key="posCR">右中</div>
+                        <div class="position-btn" onclick="selectPosition(this, 'bottom-left')" data-lang-key="posBL">左下</div>
+                        <div class="position-btn" onclick="selectPosition(this, 'bottom-center')" data-lang-key="posBC">下中</div>
+                        <div class="position-btn" onclick="selectPosition(this, 'bottom-right')" data-lang-key="posBR">右下</div>
+                    </div>
+                </div>
+                <button class="btn btn-full" onclick="applyWatermark()" data-lang-key="addWatermark">添加水印</button>
+            </div>
+
+            <div class="preview-area" id="previewArea">
+                <div id="previewContent">
+                    <h3 data-lang-key="preview">图片预览</h3>
+                    <p data-lang-key="previewDesc">上传图片后将在此显示预览，点击图片可放大</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">⚡</div>
+                <h3 class="card-title" data-lang-key="batch">批量操作</h3>
+            </div>
+            <p style="margin-bottom: 1.5rem; opacity: 0.8;" data-lang-key="batchDesc">批量处理将应用所有已配置的设置（分辨率、美化、质量、水印）到全部图片上。</p>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button class="btn" onclick="batchProcess()" data-lang-key="batchProcess">批量处理</button>
+                <button class="btn" onclick="downloadAll()" data-lang-key="downloadAll">下载全部</button>
+                <button class="btn" onclick="clearAll()" data-lang-key="clearAll">清空文件</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="imageModal" class="modal">
+      <img class="modal-content" id="modalImage">
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
