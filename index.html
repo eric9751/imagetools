@@ -26,13 +26,13 @@
     <meta name="twitter:title" content="图像处理工具 Pro - 在线全能图片编辑器">
     <meta name="twitter:description" content="一站式在线图像处理解决方案，轻松完成图片压缩、格式转换、尺寸调整、添加水印和美化滤镜。">
     <meta name="twitter:image" content="https://www.imagefx.asia/preview-image.webp">
-    
+
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    
+
     <link rel="stylesheet" href="style.css">
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
@@ -114,13 +114,15 @@
                     <h3 class="card-title" data-lang-key="compress">图片压缩</h3>
                 </div>
                 <div class="form-group">
-                    <p style="opacity: 0.8; font-size: 0.9em; margin-bottom: 1rem;" data-lang-key="compressDesc">通过调整图像质量来减小文件大小。此设置与“格式与质量”面板中的质量同步。</p>
-                    <label class="form-label" data-lang-key="compressLevel">压缩级别: <span id="compressionValue">90</span>%</label>
-                    <input type="range" class="slider" id="compressionSlider" min="10" max="100" value="90">
+                    <label class="form-label" data-lang-key="targetSize">目标大小 (KB)</label>
+                    <input type="number" class="form-input" id="targetSizeInput" placeholder="例如: 500">
                 </div>
-                <button class="btn btn-full" onclick="compressImages()" data-lang-key="applyCompress">应用压缩</button>
+                <div class="form-group">
+                    <p style="opacity: 0.7; font-size: 0.9em;" data-lang-key="targetSizeDesc">输入期望的文件大小。工具将尝试压缩到最接近的尺寸（仅适用于JPEG）。</p>
+                </div>
+                <button class="btn btn-full" onclick="compressToTargetSize()" data-lang-key="applyCompress">应用压缩</button>
             </div>
-            
+
             <div class="card">
                  <div class="card-header">
                     <div class="card-icon">✨</div>
@@ -145,6 +147,7 @@
                  <button class="btn btn-secondary btn-full" onclick="resetFilters()" data-lang-key="resetFilters" style="margin-top: 1rem;">重置美化</button>
             </div>
 
+
             <div class="card">
                 <div class="card-header">
                     <div class="card-icon">🏷️</div>
@@ -163,7 +166,7 @@
                     <input type="range" class="slider" id="opacitySlider" min="10" max="100" value="70">
                 </div>
                  <div class="form-group color-picker-wrapper">
-                      <label class="form-label" data-lang-key="watermarkColor">颜色</label>
+                       <label class="form-label" data-lang-key="watermarkColor">颜色</label>
                     <input type="color" class="color-picker" id="watermarkColor" value="#ffffff">
                 </div>
                 <div class="form-group">
@@ -204,10 +207,15 @@
             </div>
         </div>
     </div>
-    
+
     <div id="imageModal" class="modal">
       <img class="modal-content" id="modalImage">
     </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 Imagefx Tools. All Rights Reserved.</p>
+        <p>Minato City, Tokyo, Japan</p>
+    </footer>
 
     <script src="script.js"></script>
 </body>
