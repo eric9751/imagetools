@@ -424,3 +424,59 @@ function clearAll() {
     updatePreview();
     alert(currentLanguage === 'zh' ? '所有文件已清空' : 'All files cleared');
 }
+
+// This function will be called when the "Apply Compression" button is clicked
+async function compressToTargetSize() {
+    const targetSizeKB = parseInt(document.getElementById('targetSize').value);
+    if (isNaN(targetSizeKB) || targetSizeKB <= 0) {
+        alert('请输入一个有效的目标大小 (KB)。');
+        return;
+    }
+    const targetSizeBits = targetSizeKB * 1024 * 8; // Convert KB to bits for rough estimation
+
+    if (processedFiles.length === 0) {
+        alert('请先上传图片。');
+        return;
+    }
+
+    // For simplicity, this example will apply the compression to the first image.
+    // In a real application, you'd iterate through all processedFiles
+    // and apply this logic.
+    const file = processedFiles[0]; // Assuming only one file for preview/direct action
+
+    if (!file || !file.dataURL) {
+        alert('请选择一张图片进行压缩。');
+        return;
+    }
+
+    const img = new Image();
+    img.src = file.dataURL;
+    img.onload = async () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, img.width, img.height);
+
+        let quality = 90; // Starting quality
+        let compressedDataURL = canvas.toDataURL(`image/${file.type}`, quality / 100);
+        let blob = await (await fetch(compressedDataURL)).blob();
+        let currentSizeKB = blob.size / 1024;
+
+        // Simple iterative compression. More sophisticated algorithms exist.
+        while (currentSizeKB > targetSizeKB && quality > 10) {
+            quality -= 5; // Decrease quality by 5%
+            compressedDataURL = canvas.toDataURL(`image/${file.type}`, quality / 100);
+            blob = await (await fetch(compressedDataURL)).blob();
+            currentSizeKB = blob.size / 1024;
+            console.log(`Current size: ${currentSizeKB.toFixed(2)} KB, Quality: ${quality}%`);
+        }
+
+        // Update the file in processedFiles and refresh preview
+        file.dataURL = compressedDataURL;
+        file.size = blob.size;
+        updateFileList(); // Assuming you have this function to update the list of files
+        updatePreview(file); // Update the preview area
+        alert(`图片已压缩到约 ${currentSizeKB.toFixed(2)} KB (质量: ${quality}%).`);
+    };
+}
