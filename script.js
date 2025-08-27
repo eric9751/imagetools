@@ -1,6 +1,6 @@
 // 全局变量
 let currentLanguage = 'zh';
-let uploadedFiles = [];
+let uploadedFiles = []; // 存储上传的文件对象 { file, originalUrl, processedUrl, processedBlob, name }
 let selectedPosition = 'center';
 
 // 语言配置
@@ -11,9 +11,12 @@ const languages = {
         upload: '文件上传', uploadText: '点击或拖拽上传图片', uploadDesc: '支持 JPG, PNG, WEBP 格式',
         resolution: '分辨率调整', resolutionPreset: '预设分辨率', width: '宽度', height: '高度',
         applyRes: '应用分辨率', custom: '自定义', format: '格式与质量', targetFormat: '目标格式',
-        quality: '质量 (JPEG/WebP)', convertBtn: '转换格式', compress: '图片压缩',
-        compressDesc: '通过调整图像质量来减小文件大小。此设置与“格式与质量”面板中的质量同步。',
-        compressLevel: '压缩级别', applyCompress: '应用压缩', beautify: '图片美化',
+        quality: '质量 (JPEG/WebP)', convertBtn: '转换格式',
+        compress: '图片压缩',
+        targetSize: '目标大小 (KB)',
+        targetSizeDesc: '输入期望的文件大小。工具将尝试压缩到最接近的尺寸（仅适用于JPEG）。',
+        applyCompress: '应用压缩',
+        beautify: '图片美化',
         brightness: '亮度', contrast: '对比度', saturate: '饱和度', grayscale: '灰度', resetFilters: '重置美化',
         watermark: '水印设置', watermarkText: '水印文字', watermarkSize: '水印大小',
         opacity: '透明度', watermarkColor: '颜色', watermarkPos: '水印位置', addWatermark: '添加水印',
@@ -29,9 +32,12 @@ const languages = {
         upload: 'File Upload', uploadText: 'Click or drag to upload images', uploadDesc: 'Supports JPG, PNG, WEBP formats',
         resolution: 'Resolution', resolutionPreset: 'Preset Resolution', width: 'Width', height: 'Height',
         applyRes: 'Apply Resolution', custom: 'Custom', format: 'Format & Quality', targetFormat: 'Target Format',
-        quality: 'Quality (JPEG/WebP)', convertBtn: 'Convert Format', compress: 'Image Compression',
-        compressDesc: 'Reduce file size by adjusting image quality. This is synced with the quality in the "Format & Quality" panel.',
-        compressLevel: 'Compression Level', applyCompress: 'Apply Compression', beautify: 'Image Beautification',
+        quality: 'Quality (JPEG/WebP)', convertBtn: 'Convert Format',
+        compress: 'Image Compression',
+        targetSize: 'Target Size (KB)',
+        targetSizeDesc: 'Enter the desired file size. The tool will try to compress to the nearest size (JPEG only).',
+        applyCompress: 'Apply Compression',
+        beautify: 'Image Beautification',
         brightness: 'Brightness', contrast: 'Contrast', saturate: 'Saturation', grayscale: 'Grayscale', resetFilters: 'Reset Filters',
         watermark: 'Watermark', watermarkText: 'Watermark Text', watermarkSize: 'Watermark Size',
         opacity: 'Opacity', watermarkColor: 'Color', watermarkPos: 'Watermark Position', addWatermark: 'Add Watermark',
@@ -90,21 +96,10 @@ function setupEventListeners() {
             document.getElementById('customHeight').value = height;
         }
     });
-    // 质量与压缩滑块同步
-    const qualitySlider = document.getElementById('qualitySlider');
-    const compressionSlider = document.getElementById('compressionSlider');
-    qualitySlider.addEventListener('input', () => syncSliders(qualitySlider, compressionSlider));
-    compressionSlider.addEventListener('input', () => syncSliders(compressionSlider, qualitySlider));
-}
-
-function syncSliders(source, target) {
-    target.value = source.value;
-    document.getElementById('qualityValue').textContent = source.value;
-    document.getElementById('compressionValue').textContent = source.value;
 }
 
 function setupSliders() {
-    ['quality', 'compression', 'opacity', 'fontSize', 'brightness', 'contrast', 'saturate', 'grayscale'].forEach(id => {
+    ['quality', 'opacity', 'fontSize', 'brightness', 'contrast', 'saturate', 'grayscale'].forEach(id => {
         const slider = document.getElementById(`${id}Slider`);
         const valueSpan = document.getElementById(`${id}Value`);
         if (slider && valueSpan) {
@@ -155,12 +150,13 @@ function renderFileList() {
     uploadedFiles.forEach((fileObj, index) => {
         const fileItem = document.createElement('div');
         fileItem.className = 'file-item';
+        const blob = fileObj.processedBlob || fileObj.file;
         fileItem.innerHTML = `
             <div style="display: flex; align-items: center; gap: 1rem; overflow: hidden;">
                 <img src="${fileObj.processedUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; flex-shrink: 0;">
                 <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     <div style="font-weight: 600; overflow: hidden; text-overflow: ellipsis;">${fileObj.name}</div>
-                    <div style="font-size: 0.9rem; opacity: 0.7;">${(fileObj.file.size / 1024 / 1024).toFixed(2)} MB</div>
+                    <div style="font-size: 0.9rem; opacity: 0.7;">${(blob.size / 1024).toFixed(1)} KB</div>
                 </div>
             </div>
             <button onclick="removeFile(${index})" style="background: rgba(255, 0, 0, 0.2); border: 1px solid rgba(255, 0, 0, 0.3); border-radius: 50%; width: 24px; height: 24px; color: #ff6b6b; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 0;">×</button>
@@ -214,16 +210,14 @@ function updateUI() {
             }
         }
     });
-    // Manually update spans inside labels for sliders
-     document.querySelector('label[data-lang-key="quality"]').innerHTML = `${lang.quality}: <span id="qualityValue">${document.getElementById('qualitySlider').value}</span>%`;
-     document.querySelector('label[data-lang-key="compressLevel"]').innerHTML = `${lang.compressLevel}: <span id="compressionValue">${document.getElementById('compressionSlider').value}</span>%`;
-     document.querySelector('label[data-lang-key="brightness"]').innerHTML = `${lang.brightness}: <span id="brightnessValue">${document.getElementById('brightnessSlider').value}</span>%`;
-     document.querySelector('label[data-lang-key="contrast"]').innerHTML = `${lang.contrast}: <span id="contrastValue">${document.getElementById('contrastSlider').value}</span>%`;
-     document.querySelector('label[data-lang-key="saturate"]').innerHTML = `${lang.saturate}: <span id="saturateValue">${document.getElementById('saturateSlider').value}</span>%`;
-     document.querySelector('label[data-lang-key="grayscale"]').innerHTML = `${lang.grayscale}: <span id="grayscaleValue">${document.getElementById('grayscaleSlider').value}</span>%`;
-     document.querySelector('label[data-lang-key="watermarkSize"]').innerHTML = `${lang.watermarkSize}: <span id="fontSizeValue">${document.getElementById('fontSizeSlider').value}</span>%`;
-     document.querySelector('label[data-lang-key="opacity"]').innerHTML = `${lang.opacity}: <span id="opacityValue">${document.getElementById('opacitySlider').value}</span>%`;
-
+    document.querySelector('label[data-lang-key="quality"]').innerHTML = `${lang.quality}: <span id="qualityValue">${document.getElementById('qualitySlider').value}</span>%`;
+    document.querySelector('label[data-lang-key="brightness"]').innerHTML = `${lang.brightness}: <span id="brightnessValue">${document.getElementById('brightnessSlider').value}</span>%`;
+    document.querySelector('label[data-lang-key="contrast"]').innerHTML = `${lang.contrast}: <span id="contrastValue">${document.getElementById('contrastSlider').value}</span>%`;
+    document.querySelector('label[data-lang-key="saturate"]').innerHTML = `${lang.saturate}: <span id="saturateValue">${document.getElementById('saturateSlider').value}</span>%`;
+    document.querySelector('label[data-lang-key="grayscale"]').innerHTML = `${lang.grayscale}: <span id="grayscaleValue">${document.getElementById('grayscaleSlider').value}</span>%`;
+    document.querySelector('label[data-lang-key="watermarkSize"]').innerHTML = `${lang.watermarkSize}: <span id="fontSizeValue">${document.getElementById('fontSizeSlider').value}</span>%`;
+    document.querySelector('label[data-lang-key="opacity"]').innerHTML = `${lang.opacity}: <span id="opacityValue">${document.getElementById('opacitySlider').value}</span>%`;
+    document.getElementById('targetSizeInput').placeholder = currentLanguage === 'zh' ? '例如: 500' : 'E.g., 500';
     document.getElementById('watermarkText').placeholder = currentLanguage === 'zh' ? '© 您的名字 2025' : '© Your Name 2025';
 }
 
@@ -256,7 +250,7 @@ function updateProgress(percent) {
 function getFilterSettings() {
      const filters = {};
      document.querySelectorAll('.beautify-slider').forEach(slider => {
-         filters[slider.dataset.filter] = `${slider.value}${slider.dataset.unit}`;
+          filters[slider.dataset.filter] = `${slider.value}${slider.dataset.unit}`;
      });
      return filters;
 }
@@ -287,14 +281,11 @@ async function processImage(fileObj, options) {
             const ctx = canvas.getContext('2d');
             canvas.width = options.width || img.width;
             canvas.height = options.height || img.height;
-
             if(options.filters) {
                ctx.filter = Object.entries(options.filters).map(([key, value]) => `${key}(${value})`).join(' ');
             }
-            
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            ctx.filter = 'none';
-
+            ctx.filter = 'none'; 
             if (options.watermark && options.watermark.text) {
                 const wm = options.watermark;
                 const fontSize = (canvas.width * (wm.size / 100));
@@ -302,7 +293,6 @@ async function processImage(fileObj, options) {
                 ctx.fillStyle = wm.color;
                 ctx.globalAlpha = wm.opacity;
                 ctx.textBaseline = 'middle';
-                
                 const marginX = canvas.width * 0.05, marginY = canvas.height * 0.05;
                 const positions = {
                     'top-left': { x: marginX, y: marginY, textAlign: 'left' },
@@ -319,7 +309,6 @@ async function processImage(fileObj, options) {
                 ctx.textAlign = pos.textAlign;
                 ctx.fillText(wm.text, pos.x, pos.y);
             }
-            
             const format = `image/${options.format || fileObj.file.type.split('/')[1] || 'jpeg'}`;
             const quality = (options.quality || 90) / 100;
             canvas.toBlob(blob => {
@@ -357,9 +346,72 @@ async function applyChanges(settings) {
     hideProgress();
 }
 
+// --- Core Action Functions ---
 function applyResolution() { applyChanges({ width: parseInt(document.getElementById('customWidth').value) || null, height: parseInt(document.getElementById('customHeight').value) || null }); }
 function convertFormat() { applyChanges({ format: document.getElementById('targetFormat').value, quality: parseInt(document.getElementById('qualitySlider').value) }); }
-function compressImages() { applyChanges({ quality: parseInt(document.getElementById('compressionSlider').value) }); }
+
+async function compressToTargetSize() {
+    if (uploadedFiles.length === 0) {
+        alert(languages[currentLanguage].uploadFirst || 'Please upload images first'); return;
+    }
+    const targetSizeKB = parseInt(document.getElementById('targetSizeInput').value);
+    if (isNaN(targetSizeKB) || targetSizeKB <= 0) {
+        alert(currentLanguage === 'zh' ? '请输入一个有效的目标大小 (KB)' : 'Please enter a valid target size (KB)'); return;
+    }
+    const targetSizeBytes = targetSizeKB * 1024;
+
+    showProgress();
+    for (let i = 0; i < uploadedFiles.length; i++) {
+        const fileObj = uploadedFiles[i];
+        try {
+            const { blob, name } = await findOptimalBlob(fileObj, targetSizeBytes);
+            URL.revokeObjectURL(fileObj.processedUrl);
+            fileObj.processedUrl = URL.createObjectURL(blob);
+            fileObj.processedBlob = blob;
+            fileObj.name = name;
+            updateProgress(((i + 1) / uploadedFiles.length) * 100);
+        } catch (error) {
+            console.error('Error compressing image:', error);
+            alert(`Error compressing ${fileObj.name}.`); break;
+        }
+    }
+    renderFileList();
+    updatePreview();
+    hideProgress();
+}
+
+async function findOptimalBlob(fileObj, targetSizeBytes) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = async () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            if (fileObj.file.size < targetSizeBytes && fileObj.file.type === 'image/jpeg') {
+                canvas.toBlob(blob => { resolve({ blob, name: fileObj.name }); }, 'image/jpeg', 0.95); return;
+            }
+
+            let minQuality = 0, maxQuality = 100, bestBlob = null;
+            for (let i = 0; i < 8; i++) {
+                const quality = (minQuality + maxQuality) / 2;
+                const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality / 100));
+                if (blob.size > targetSizeBytes) { maxQuality = quality; } 
+                else { minQuality = quality; bestBlob = blob; }
+            }
+            if (!bestBlob) { bestBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', minQuality / 100)); }
+            
+            const oldName = fileObj.name;
+            const nameWithoutExt = oldName.substring(0, oldName.lastIndexOf('.'));
+            resolve({ blob: bestBlob, name: `${nameWithoutExt}.jpg` });
+        };
+        img.onerror = reject;
+        img.src = fileObj.originalUrl;
+    });
+}
+
 function applyWatermark() {
     const text = document.getElementById('watermarkText').value;
     if (!text.trim()) { alert(currentLanguage === 'zh' ? '请输入水印文字' : 'Please enter watermark text'); return; }
@@ -423,60 +475,4 @@ function clearAll() {
     resetFilters();
     updatePreview();
     alert(currentLanguage === 'zh' ? '所有文件已清空' : 'All files cleared');
-}
-
-// This function will be called when the "Apply Compression" button is clicked
-async function compressToTargetSize() {
-    const targetSizeKB = parseInt(document.getElementById('targetSize').value);
-    if (isNaN(targetSizeKB) || targetSizeKB <= 0) {
-        alert('请输入一个有效的目标大小 (KB)。');
-        return;
-    }
-    const targetSizeBits = targetSizeKB * 1024 * 8; // Convert KB to bits for rough estimation
-
-    if (processedFiles.length === 0) {
-        alert('请先上传图片。');
-        return;
-    }
-
-    // For simplicity, this example will apply the compression to the first image.
-    // In a real application, you'd iterate through all processedFiles
-    // and apply this logic.
-    const file = processedFiles[0]; // Assuming only one file for preview/direct action
-
-    if (!file || !file.dataURL) {
-        alert('请选择一张图片进行压缩。');
-        return;
-    }
-
-    const img = new Image();
-    img.src = file.dataURL;
-    img.onload = async () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, img.width, img.height);
-
-        let quality = 90; // Starting quality
-        let compressedDataURL = canvas.toDataURL(`image/${file.type}`, quality / 100);
-        let blob = await (await fetch(compressedDataURL)).blob();
-        let currentSizeKB = blob.size / 1024;
-
-        // Simple iterative compression. More sophisticated algorithms exist.
-        while (currentSizeKB > targetSizeKB && quality > 10) {
-            quality -= 5; // Decrease quality by 5%
-            compressedDataURL = canvas.toDataURL(`image/${file.type}`, quality / 100);
-            blob = await (await fetch(compressedDataURL)).blob();
-            currentSizeKB = blob.size / 1024;
-            console.log(`Current size: ${currentSizeKB.toFixed(2)} KB, Quality: ${quality}%`);
-        }
-
-        // Update the file in processedFiles and refresh preview
-        file.dataURL = compressedDataURL;
-        file.size = blob.size;
-        updateFileList(); // Assuming you have this function to update the list of files
-        updatePreview(file); // Update the preview area
-        alert(`图片已压缩到约 ${currentSizeKB.toFixed(2)} KB (质量: ${quality}%).`);
-    };
 }
