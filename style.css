@@ -392,3 +392,15 @@ body {
         font-size: 2rem;
     }
 }
+.footer {
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 20px;
+    margin-top: 40px;
+    font-size: 0.9em;
+}
+
+.footer p {
+    margin: 5px 0;
+}
