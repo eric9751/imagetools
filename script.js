@@ -291,7 +291,7 @@ async function processImage(fileObj, options) {
             if(options.filters) {
                ctx.filter = Object.entries(options.filters).map(([key, value]) => `${key}(${value})`).join(' ');
             }
-
+            
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             ctx.filter = 'none';
 
@@ -302,7 +302,7 @@ async function processImage(fileObj, options) {
                 ctx.fillStyle = wm.color;
                 ctx.globalAlpha = wm.opacity;
                 ctx.textBaseline = 'middle';
-
+                
                 const marginX = canvas.width * 0.05, marginY = canvas.height * 0.05;
                 const positions = {
                     'top-left': { x: marginX, y: marginY, textAlign: 'left' },
@@ -319,7 +319,7 @@ async function processImage(fileObj, options) {
                 ctx.textAlign = pos.textAlign;
                 ctx.fillText(wm.text, pos.x, pos.y);
             }
-
+            
             const format = `image/${options.format || fileObj.file.type.split('/')[1] || 'jpeg'}`;
             const quality = (options.quality || 90) / 100;
             canvas.toBlob(blob => {
