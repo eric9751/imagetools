@@ -1,478 +1,488 @@
-// 全局变量
-let currentLanguage = 'zh';
-let uploadedFiles = []; // 存储上传的文件对象 { file, originalUrl, processedUrl, processedBlob, name }
-let selectedPosition = 'center';
+// script.js
 
-// 语言配置
-const languages = {
-    zh: {
-        logo: '图像处理工具 Pro', langBtn: 'English', title: '专业图像处理套件',
-        subtitle: '一站式图像处理解决方案，支持批量操作和多种格式转换',
-        upload: '文件上传', uploadText: '点击或拖拽上传图片', uploadDesc: '支持 JPG, PNG, WEBP 格式',
-        resolution: '分辨率调整', resolutionPreset: '预设分辨率', width: '宽度', height: '高度',
-        applyRes: '应用分辨率', custom: '自定义', format: '格式与质量', targetFormat: '目标格式',
-        quality: '质量 (JPEG/WebP)', convertBtn: '转换格式',
-        compress: '图片压缩',
-        targetSize: '目标大小 (KB)',
-        targetSizeDesc: '输入期望的文件大小。工具将尝试压缩到最接近的尺寸（仅适用于JPEG）。',
-        applyCompress: '应用压缩',
-        beautify: '图片美化',
-        brightness: '亮度', contrast: '对比度', saturate: '饱和度', grayscale: '灰度', resetFilters: '重置美化',
-        watermark: '水印设置', watermarkText: '水印文字', watermarkSize: '水印大小',
-        opacity: '透明度', watermarkColor: '颜色', watermarkPos: '水印位置', addWatermark: '添加水印',
-        preview: '图片预览', previewDesc: '上传图片后将在此显示预览，点击图片可放大',
-        batch: '批量操作', batchDesc: '批量处理将应用所有已配置的设置（分辨率、美化、质量、水印）到全部图片上。',
-        batchProcess: '批量处理', downloadAll: '下载全部', clearAll: '清空文件',
-        posTL: '左上', posTC: '上中', posTR: '右上', posCL: '左中', posC: '居中',
-        posCR: '右中', posBL: '左下', posBC: '下中', posBR: '右下'
-    },
+// 全局变量
+let uploadedFiles = [];
+let processedImages = {}; // { originalName: { dataUrl: "...", targetSize: null } }
+
+// 多语言翻译对象 (保持不变，此处省略以节省空间)
+const translations = {
     en: {
-        logo: 'Image Processor Pro', langBtn: '中文', title: 'Professional Image Processing Suite',
-        subtitle: 'One-stop image processing solution with batch operations and format conversion',
-        upload: 'File Upload', uploadText: 'Click or drag to upload images', uploadDesc: 'Supports JPG, PNG, WEBP formats',
-        resolution: 'Resolution', resolutionPreset: 'Preset Resolution', width: 'Width', height: 'Height',
-        applyRes: 'Apply Resolution', custom: 'Custom', format: 'Format & Quality', targetFormat: 'Target Format',
-        quality: 'Quality (JPEG/WebP)', convertBtn: 'Convert Format',
-        compress: 'Image Compression',
-        targetSize: 'Target Size (KB)',
-        targetSizeDesc: 'Enter the desired file size. The tool will try to compress to the nearest size (JPEG only).',
-        applyCompress: 'Apply Compression',
-        beautify: 'Image Beautification',
-        brightness: 'Brightness', contrast: 'Contrast', saturate: 'Saturation', grayscale: 'Grayscale', resetFilters: 'Reset Filters',
-        watermark: 'Watermark', watermarkText: 'Watermark Text', watermarkSize: 'Watermark Size',
-        opacity: 'Opacity', watermarkColor: 'Color', watermarkPos: 'Watermark Position', addWatermark: 'Add Watermark',
-        preview: 'Image Preview', previewDesc: 'Preview appears here. Click on the image to enlarge.',
-        batch: 'Batch Operations', batchDesc: 'Batch process applies all configured settings (resolution, filters, quality, watermark) to all images.',
-        batchProcess: 'Batch Process', downloadAll: 'Download All', clearAll: 'Clear All',
-        posTL: 'Top-L', posTC: 'Top-C', posTR: 'Top-R', posCL: 'Center-L', posC: 'Center',
-        posCR: 'Center-R', posBL: 'Bottom-L', posBC: 'Bottom-C', posBR: 'Bottom-R'
+        logo: "ImageFX Pro",
+        langBtn: "中文",
+        title: "Professional Image Processing Suite",
+        subtitle: "One-stop solution for batch image processing and format conversion",
+        upload: "File Upload",
+        uploadText: "Click or drag images to upload",
+        uploadDesc: "Supports JPG, PNG, WEBP formats",
+        resolution: "Resolution Adjustment",
+        resolutionPreset: "Preset Resolution",
+        custom: "Custom",
+        width: "Width",
+        height: "Height",
+        applyRes: "Apply Resolution",
+        format: "Format & Quality",
+        targetFormat: "Target Format",
+        quality: "Quality (JPEG/WebP): ",
+        convertBtn: "Convert Format",
+        compress: "Image Compression",
+        targetSize: "Target Size (KB)",
+        targetSizeDesc: "Enter the desired file size. The tool will try to compress to the closest size (JPEG only).",
+        applyCompress: "Apply Compression",
+        beautify: "Image Beautify",
+        brightness: "Brightness: ",
+        contrast: "Contrast: ",
+        saturate: "Saturation: ",
+        grayscale: "Grayscale: ",
+        resetFilters: "Reset Filters",
+        watermark: "Watermark Settings",
+        watermarkText: "Watermark Text",
+        watermarkSize: "Watermark Size: ",
+        opacity: "Opacity: ",
+        watermarkColor: "Color",
+        watermarkPos: "Watermark Position",
+        posTL: "Top-L", posTC: "Top-C", posTR: "Top-R",
+        posCL: "Center-L", posC: "Center", posCR: "Center-R",
+        posBL: "Bottom-L", posBC: "Bottom-C", posBR: "Bottom-R",
+        addWatermark: "Add Watermark",
+        preview: "Image Preview",
+        previewDesc: "Previews will be shown here. Click an image to enlarge.",
+        batch: "Batch Operations",
+        batchDesc: "Batch processing applies all configured settings (resolution, filters, quality, watermark) to all images.",
+        batchProcess: "Batch Process",
+        downloadAll: "Download All",
+        clearAll: "Clear All",
+    },
+    zh: {
+        logo: "图像处理工具 Pro",
+        langBtn: "English",
+        title: "专业图像处理套件",
+        subtitle: "一站式图像处理解决方案，支持批量操作和多种格式转换",
+        upload: "文件上传",
+        uploadText: "点击或拖拽上传图片",
+        uploadDesc: "支持 JPG, PNG, WEBP 格式",
+        resolution: "分辨率调整",
+        resolutionPreset: "预设分辨率",
+        custom: "自定义",
+        width: "宽度",
+        height: "高度",
+        applyRes: "应用分辨率",
+        format: "格式与质量",
+        targetFormat: "目标格式",
+        quality: "质量 (JPEG/WebP): ",
+        convertBtn: "转换格式",
+        compress: "图片压缩",
+        targetSize: "目标大小 (KB)",
+        targetSizeDesc: "输入期望的文件大小。工具将尝试压缩到最接近的尺寸（仅适用于JPEG）。",
+        applyCompress: "应用压缩",
+        beautify: "图片美化",
+        brightness: "亮度: ",
+        contrast: "对比度: ",
+        saturate: "饱和度: ",
+        grayscale: "灰度: ",
+        resetFilters: "重置美化",
+        watermark: "水印设置",
+        watermarkText: "水印文字",
+        watermarkSize: "水印大小: ",
+        opacity: "透明度: ",
+        watermarkColor: "颜色",
+        watermarkPos: "水印位置",
+        posTL: "左上", posTC: "上中", posTR: "右上",
+        posCL: "左中", posC: "居中", posCR: "右中",
+        posBL: "左下", posBC: "下中", posBR: "右下",
+        addWatermark: "添加水印",
+        preview: "图片预览",
+        previewDesc: "上传图片后将在此显示预览，点击图片可放大",
+        batch: "批量操作",
+        batchDesc: "批量处理将应用所有已配置的设置（分辨率、美化、质量、水印）到全部图片上。",
+        batchProcess: "批量处理",
+        downloadAll: "下载全部",
+        clearAll: "清空文件",
     }
 };
 
-// DOM加载完成后初始化
+
 document.addEventListener('DOMContentLoaded', () => {
-    initializeApp();
-    updateUI();
-});
-
-function initializeApp() {
-    setupFileUpload();
-    setupEventListeners();
-    setupSliders();
-    setupModal();
-}
-
-function setupFileUpload() {
-    const fileInput = document.getElementById('fileInput');
+    // === DOM Element Selection ===
     const uploadArea = document.getElementById('uploadArea');
-    uploadArea.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        uploadArea.addEventListener(eventName, e => {
-            e.preventDefault(); e.stopPropagation();
-        }, false);
-    });
-    ['dragenter', 'dragover'].forEach(eventName => {
-        uploadArea.addEventListener(eventName, () => {
-            uploadArea.style.borderColor = '#00d4ff';
-            uploadArea.style.backgroundColor = 'rgba(0, 212, 255, 0.05)';
-        }, false);
-    });
-    ['dragleave', 'drop'].forEach(eventName => {
-        uploadArea.addEventListener(eventName, () => {
-            uploadArea.style.borderColor = 'rgba(0, 212, 255, 0.3)';
-            uploadArea.style.backgroundColor = '';
-        }, false);
-    });
-    uploadArea.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
-}
+    const fileInput = document.getElementById('fileInput');
+    const resolutionPreset = document.getElementById('resolutionPreset');
+    const langSwitchBtn = document.querySelector('.lang-switch');
 
-function setupEventListeners() {
-    document.querySelector('.lang-switch').addEventListener('click', toggleLanguage);
-    document.getElementById('resolutionPreset').addEventListener('change', function() {
-        if (this.value !== 'custom') {
-            const [width, height] = this.value.split('x');
+    // === Event Listeners Setup ===
+
+    // File Upload Handlers
+    uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+    });
+    uploadArea.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+
+    // Resolution Preset Handler
+    resolutionPreset.addEventListener('change', (e) => {
+        const value = e.target.value;
+        if (value !== 'custom') {
+            const [width, height] = value.split('x');
             document.getElementById('customWidth').value = width;
             document.getElementById('customHeight').value = height;
         }
     });
-}
 
-function setupSliders() {
-    ['quality', 'opacity', 'fontSize', 'brightness', 'contrast', 'saturate', 'grayscale'].forEach(id => {
-        const slider = document.getElementById(`${id}Slider`);
-        const valueSpan = document.getElementById(`${id}Value`);
-        if (slider && valueSpan) {
-            slider.addEventListener('input', () => { valueSpan.textContent = slider.value; });
-        }
+    // Language Switcher
+    langSwitchBtn.addEventListener('click', () => {
+        const currentLang = document.documentElement.lang === 'zh-CN' ? 'en' : 'zh';
+        document.documentElement.lang = currentLang === 'en' ? 'en-US' : 'zh-CN';
+        setLanguage(currentLang);
     });
-    document.querySelectorAll('.beautify-slider').forEach(slider => {
-        slider.addEventListener('input', updatePreviewFilters);
-    });
-}
 
-function setupModal() {
-    const modal = document.getElementById('imageModal');
-    document.getElementById('previewArea').addEventListener('click', (e) => {
-        if (e.target.tagName === 'IMG') {
-            document.getElementById('modalImage').src = e.target.src;
-            modal.style.display = "block";
-        }
-    });
-    modal.addEventListener('click', () => {
-        modal.style.display = "none";
-    });
-}
+    // *** FIX: Real-time Slider Value Display ***
+    const sliders = {
+        'qualitySlider': 'qualityValue',
+        'brightnessSlider': 'brightnessValue',
+        'contrastSlider': 'contrastValue',
+        'saturateSlider': 'saturateValue',
+        'grayscaleSlider': 'grayscaleValue',
+        'fontSizeSlider': 'fontSizeValue',
+        'opacitySlider': 'opacityValue'
+    };
 
-function handleFiles(files) {
-    Array.from(files).forEach(file => {
-        if (file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                uploadedFiles.push({
-                    file: file, originalUrl: e.target.result,
-                    processedUrl: e.target.result, processedBlob: null, name: file.name
-                });
-                if (uploadedFiles.length === 1) { // Only reset filters for the first image
-                     resetFilters();
+    for (const sliderId in sliders) {
+        const slider = document.getElementById(sliderId);
+        const displayId = sliders[sliderId];
+        if (slider) {
+            slider.addEventListener('input', (e) => {
+                document.getElementById(displayId).textContent = e.target.value;
+                 // For beautify sliders, apply filters live
+                if (e.target.classList.contains('beautify-slider')) {
+                    applyFiltersToPreview();
                 }
-                renderFileList();
-                updatePreview();
-            };
-            reader.readAsDataURL(file);
+            });
+        }
+    }
+
+    // Initialize with default language
+    setLanguage('zh');
+});
+
+/**
+ * Sets the web page's language.
+ * @param {string} lang - 'en' or 'zh'.
+ */
+function setLanguage(lang) {
+    const langData = translations[lang];
+    document.querySelectorAll('[data-lang-key]').forEach(element => {
+        const key = element.getAttribute('data-lang-key');
+        if (langData[key]) {
+            element.textContent = langData[key];
         }
     });
 }
 
-function renderFileList() {
-    const fileList = document.getElementById('fileList');
-    fileList.innerHTML = '';
-    uploadedFiles.forEach((fileObj, index) => {
+/**
+ * Handles uploaded files.
+ * @param {FileList} files - The list of files selected by the user.
+ */
+function handleFiles(files) {
+    const fileListDiv = document.getElementById('fileList');
+    const previewContent = document.getElementById('previewContent');
+
+    if (uploadedFiles.length === 0) {
+        previewContent.innerHTML = '';
+        fileListDiv.innerHTML = '';
+    }
+
+    Array.from(files).forEach(file => {
+        if (!file.type.startsWith('image/') || uploadedFiles.some(f => f.name === file.name)) {
+            return; // Skip non-images or duplicates
+        }
+
+        uploadedFiles.push(file);
+
         const fileItem = document.createElement('div');
-        fileItem.className = 'file-item';
-        const blob = fileObj.processedBlob || fileObj.file;
-        fileItem.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 1rem; overflow: hidden;">
-                <img src="${fileObj.processedUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; flex-shrink: 0;">
-                <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    <div style="font-weight: 600; overflow: hidden; text-overflow: ellipsis;">${fileObj.name}</div>
-                    <div style="font-size: 0.9rem; opacity: 0.7;">${(blob.size / 1024).toFixed(1)} KB</div>
-                </div>
-            </div>
-            <button onclick="removeFile(${index})" style="background: rgba(255, 0, 0, 0.2); border: 1px solid rgba(255, 0, 0, 0.3); border-radius: 50%; width: 24px; height: 24px; color: #ff6b6b; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 0;">×</button>
-        `;
-        fileList.appendChild(fileItem);
+        fileItem.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        fileListDiv.appendChild(fileItem);
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const container = document.createElement('div');
+            container.className = 'preview-image-container';
+
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.dataset.originalName = file.name;
+            img.onclick = () => showModal(img.src);
+
+            container.appendChild(img);
+            previewContent.appendChild(container);
+
+            processedImages[file.name] = { dataUrl: e.target.result, targetSize: null };
+        };
+        reader.readAsDataURL(file);
     });
 }
 
-function removeFile(index) {
-    URL.revokeObjectURL(uploadedFiles[index].processedUrl);
-    uploadedFiles.splice(index, 1);
-    renderFileList();
-    updatePreview();
-}
+/**
+ * Main image processing function.
+ * @param {string} imageDataUrl - The source image data URL.
+ * @param {number|null} targetSizeKB - The target file size in KB for compression, or null.
+ * @returns {Promise<string>} - A promise that resolves to the processed image data URL.
+ */
+function processImage(imageDataUrl, targetSizeKB = null) {
+    return new Promise((resolve) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.onload = async () => {
+            // 1. Apply Resolution
+            const customWidth = parseInt(document.getElementById('customWidth').value);
+            const customHeight = parseInt(document.getElementById('customHeight').value);
+            canvas.width = customWidth > 0 ? customWidth : img.width;
+            canvas.height = customHeight > 0 ? customHeight : img.height;
 
-function updatePreview() {
-    const previewArea = document.getElementById('previewContent');
-    const lang = languages[currentLanguage];
-    if (uploadedFiles.length > 0) {
-        previewArea.innerHTML = `
-            <h3>${lang.preview} (1 / ${uploadedFiles.length})</h3>
-            <img id="previewImage" src="${uploadedFiles[0].processedUrl}">
-            <div class="progress-bar" id="progressBar" style="display: none;"><div class="progress-fill" id="progressFill"></div></div>
-        `;
-        updatePreviewFilters(); // Apply current filter values to new preview
-    } else {
-        previewArea.innerHTML = `
-            <h3 data-lang-key="preview">${lang.preview}</h3>
-            <p data-lang-key="previewDesc">${lang.previewDesc}</p>
-        `;
-    }
-}
+            // 2. Apply Beautification Filters
+            const filters = Array.from(document.querySelectorAll('.beautify-slider'))
+                .map(s => `${s.dataset.filter}(${s.value}${s.dataset.unit})`)
+                .join(' ');
+            ctx.filter = filters;
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-function toggleLanguage() {
-    currentLanguage = currentLanguage === 'zh' ? 'en' : 'zh';
-    updateUI();
-}
+            // 3. Apply Watermark
+            const watermarkText = document.getElementById('watermarkText').value.trim();
+            if (watermarkText) {
+                // (Watermark logic remains the same as previous version)
+                const fontSizePercent = document.getElementById('fontSizeSlider').value;
+                const opacity = document.getElementById('opacitySlider').value / 100;
+                const color = document.getElementById('watermarkColor').value;
+                const activePosBtn = document.querySelector('.position-btn.active');
+                const position = activePosBtn ? activePosBtn.getAttribute('onclick').match(/'([^']+)'/)[1] : 'center';
 
-function updateUI() {
-    const lang = languages[currentLanguage];
-    document.documentElement.lang = currentLanguage;
-    document.querySelectorAll('[data-lang-key]').forEach(el => {
-        const key = el.getAttribute('data-lang-key');
-        if (lang[key]) {
-            if (el.tagName === 'OPTION') {
-                el.textContent = lang[key];
-            } else if (el.placeholder !== undefined) {
-                el.placeholder = lang[key];
-            } else {
-                 el.innerHTML = lang[key];
+                const fontSize = (canvas.width * fontSizePercent) / 100;
+                ctx.font = `bold ${fontSize}px 'Poppins', sans-serif`;
+                ctx.fillStyle = color;
+                ctx.globalAlpha = opacity;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                let x, y;
+                const margin = canvas.width * 0.02; // 2% margin
+                const textMetrics = ctx.measureText(watermarkText);
+                
+                const posMap = {
+                    'top-left': [textMetrics.width / 2 + margin, fontSize / 2 + margin],
+                    'top-center': [canvas.width / 2, fontSize / 2 + margin],
+                    'top-right': [canvas.width - textMetrics.width / 2 - margin, fontSize / 2 + margin],
+                    'center-left': [textMetrics.width / 2 + margin, canvas.height / 2],
+                    'center': [canvas.width / 2, canvas.height / 2],
+                    'center-right': [canvas.width - textMetrics.width / 2 - margin, canvas.height / 2],
+                    'bottom-left': [textMetrics.width / 2 + margin, canvas.height - fontSize / 2 - margin],
+                    'bottom-center': [canvas.width / 2, canvas.height - fontSize / 2 - margin],
+                    'bottom-right': [canvas.width - textMetrics.width / 2 - margin, canvas.height - fontSize / 2 - margin]
+                };
+                [x, y] = posMap[position];
+
+                ctx.fillText(watermarkText, x, y);
             }
-        }
+
+            // 4. Format Conversion & Quality
+            const format = document.getElementById('targetFormat').value;
+            if (format === 'jpeg' && targetSizeKB) {
+                 const finalDataUrl = await binarySearchCompress(canvas, targetSizeKB);
+                 resolve(finalDataUrl);
+            } else {
+                const quality = parseInt(document.getElementById('qualitySlider').value) / 100;
+                const finalDataUrl = canvas.toDataURL(`image/${format}`, quality);
+                resolve(finalDataUrl);
+            }
+        };
+        img.src = imageDataUrl;
     });
-    document.querySelector('label[data-lang-key="quality"]').innerHTML = `${lang.quality}: <span id="qualityValue">${document.getElementById('qualitySlider').value}</span>%`;
-    document.querySelector('label[data-lang-key="brightness"]').innerHTML = `${lang.brightness}: <span id="brightnessValue">${document.getElementById('brightnessSlider').value}</span>%`;
-    document.querySelector('label[data-lang-key="contrast"]').innerHTML = `${lang.contrast}: <span id="contrastValue">${document.getElementById('contrastSlider').value}</span>%`;
-    document.querySelector('label[data-lang-key="saturate"]').innerHTML = `${lang.saturate}: <span id="saturateValue">${document.getElementById('saturateSlider').value}</span>%`;
-    document.querySelector('label[data-lang-key="grayscale"]').innerHTML = `${lang.grayscale}: <span id="grayscaleValue">${document.getElementById('grayscaleSlider').value}</span>%`;
-    document.querySelector('label[data-lang-key="watermarkSize"]').innerHTML = `${lang.watermarkSize}: <span id="fontSizeValue">${document.getElementById('fontSizeSlider').value}</span>%`;
-    document.querySelector('label[data-lang-key="opacity"]').innerHTML = `${lang.opacity}: <span id="opacityValue">${document.getElementById('opacitySlider').value}</span>%`;
-    document.getElementById('targetSizeInput').placeholder = currentLanguage === 'zh' ? '例如: 500' : 'E.g., 500';
-    document.getElementById('watermarkText').placeholder = currentLanguage === 'zh' ? '© 您的名字 2025' : '© Your Name 2025';
 }
 
-function selectPosition(element, position) {
-    document.querySelectorAll('.position-btn').forEach(btn => btn.classList.remove('active'));
-    element.classList.add('active');
-    selectedPosition = position;
-}
+/**
+ * Uses binary search to find the optimal JPEG quality for a target file size.
+ * @param {HTMLCanvasElement} canvas - The canvas with the image data.
+ * @param {number} targetSizeKB - The target size in kilobytes.
+ * @returns {Promise<string>} - The resulting data URL.
+ */
+async function binarySearchCompress(canvas, targetSizeKB) {
+    let quality = 0.9;
+    let minQuality = 0;
+    let maxQuality = 1;
+    let iteration = 0;
+    const targetSizeBytes = targetSizeKB * 1024;
+    let currentDataUrl = '';
 
-function showProgress() {
-    const progressBar = document.getElementById('progressBar');
-    if (progressBar) {
-        progressBar.style.display = 'block';
-        document.getElementById('progressFill').style.width = '0%';
+    while (iteration < 10) { // Max 10 iterations to prevent infinite loops
+        currentDataUrl = canvas.toDataURL('image/jpeg', quality);
+        const currentSize = atob(currentDataUrl.split(',')[1]).length;
+
+        if (Math.abs(currentSize - targetSizeBytes) < 5 * 1024) { // Within 5KB tolerance
+            break;
+        }
+
+        if (currentSize > targetSizeBytes) {
+            maxQuality = quality;
+        } else {
+            minQuality = quality;
+        }
+        quality = (minQuality + maxQuality) / 2;
+        iteration++;
     }
+    return currentDataUrl;
 }
 
-function hideProgress() {
-    setTimeout(() => {
-        const progressBar = document.getElementById('progressBar');
-        if (progressBar) progressBar.style.display = 'none';
-    }, 500);
+/**
+ * Batch processes all uploaded images.
+ */
+async function batchProcess() {
+    if (uploadedFiles.length === 0) return alert("请先上传图片！");
+    alert("开始批量处理，请稍候...");
+
+    const promises = uploadedFiles.map(async (file) => {
+        const originalDataUrl = processedImages[file.name].dataUrl;
+        const targetSize = processedImages[file.name].targetSize;
+        const processedDataUrl = await processImage(originalDataUrl, targetSize);
+        
+        processedImages[file.name].dataUrl = processedDataUrl;
+        
+        const previewImg = document.querySelector(`img[data-original-name="${file.name}"]`);
+        if (previewImg) previewImg.src = processedDataUrl;
+    });
+
+    await Promise.all(promises);
+    alert("批量处理完成！");
 }
 
-function updateProgress(percent) {
-    const progressFill = document.getElementById('progressFill');
-    if (progressFill) progressFill.style.width = percent + '%';
+/**
+ * Downloads all processed images as a ZIP file.
+ */
+function downloadAll() {
+    if (uploadedFiles.length === 0) return alert("没有可下载的图片。");
+
+    const zip = new JSZip();
+    const format = document.getElementById('targetFormat').value;
+
+    uploadedFiles.forEach(file => {
+        const baseName = file.name.substring(0, file.name.lastIndexOf('.'));
+        const newName = `${baseName}.${format}`;
+        const dataUrl = processedImages[file.name].dataUrl;
+        const rawImageData = dataUrl.split(',')[1];
+        zip.file(newName, rawImageData, { base64: true });
+    });
+
+    zip.generateAsync({ type: "blob" }).then(content => {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(content);
+        link.download = "ImageFX_Tools_Processed.zip";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
 }
 
-function getFilterSettings() {
-     const filters = {};
-     document.querySelectorAll('.beautify-slider').forEach(slider => {
-          filters[slider.dataset.filter] = `${slider.value}${slider.dataset.unit}`;
-     });
-     return filters;
+/**
+ * Clears all files and resets the interface.
+ */
+function clearAll() {
+    uploadedFiles = [];
+    processedImages = {};
+    document.getElementById('fileList').innerHTML = '';
+    const previewContent = document.getElementById('previewContent');
+    previewContent.innerHTML = `
+        <h3 data-lang-key="preview">图片预览</h3>
+        <p data-lang-key="previewDesc">上传图片后将在此显示预览，点击图片可放大</p>
+    `;
+    const currentLang = document.documentElement.lang === 'zh-CN' ? 'zh' : 'en';
+    setLanguage(currentLang);
+    fileInput.value = '';
 }
 
-function updatePreviewFilters() {
-    const previewImg = document.getElementById('previewImage');
-    if (!previewImg) return;
-    const filters = getFilterSettings();
-    previewImg.style.filter = Object.entries(filters).map(([key, value]) => `${key}(${value})`).join(' ');
+// --- Single-purpose action functions ---
+
+function applyResolution() { batchProcess(); }
+function convertFormat() { batchProcess(); }
+function applyWatermark() { batchProcess(); }
+
+/**
+ * Applies compression to a target size for all uploaded JPEG images.
+ */
+async function compressToTargetSize() {
+    if (uploadedFiles.length === 0) return alert("请先上传图片！");
+    const targetSizeInput = document.getElementById('targetSizeInput');
+    const targetSizeKB = parseInt(targetSizeInput.value);
+
+    if (!targetSizeKB || targetSizeKB <= 0) {
+        return alert("请输入一个有效的正数作为目标大小 (KB)！");
+    }
+    
+    // Set target size for all images
+    uploadedFiles.forEach(file => {
+        processedImages[file.name].targetSize = targetSizeKB;
+    });
+
+    // Ensure target format is JPEG for this to work
+    document.getElementById('targetFormat').value = 'jpeg';
+    
+    alert(`将尝试把所有图片压缩到 ${targetSizeKB}KB 左右...`);
+    await batchProcess();
+    
+    // Reset target size after processing
+    uploadedFiles.forEach(file => {
+        processedImages[file.name].targetSize = null;
+    });
 }
 
+// --- Helper Functions ---
+
+/**
+ * Applies CSS filters to preview images in real-time.
+ */
+function applyFiltersToPreview() {
+    const filters = Array.from(document.querySelectorAll('.beautify-slider'))
+        .map(s => `${s.dataset.filter}(${s.value}${s.dataset.unit})`)
+        .join(' ');
+    document.querySelectorAll('#previewContent img').forEach(img => {
+        img.style.filter = filters;
+    });
+}
+
+/**
+ * Resets all beautification filters to their default values.
+ */
 function resetFilters() {
     document.getElementById('brightnessSlider').value = 100;
     document.getElementById('contrastSlider').value = 100;
     document.getElementById('saturateSlider').value = 100;
     document.getElementById('grayscaleSlider').value = 0;
     document.querySelectorAll('.beautify-slider').forEach(slider => {
-        document.getElementById(`${slider.id.replace('Slider', 'Value')}`).textContent = slider.value;
-    });
-    updatePreviewFilters();
-}
-
-async function processImage(fileObj, options) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = options.width || img.width;
-            canvas.height = options.height || img.height;
-            if(options.filters) {
-               ctx.filter = Object.entries(options.filters).map(([key, value]) => `${key}(${value})`).join(' ');
-            }
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            ctx.filter = 'none'; 
-            if (options.watermark && options.watermark.text) {
-                const wm = options.watermark;
-                const fontSize = (canvas.width * (wm.size / 100));
-                ctx.font = `bold ${fontSize}px 'Segoe UI', sans-serif`;
-                ctx.fillStyle = wm.color;
-                ctx.globalAlpha = wm.opacity;
-                ctx.textBaseline = 'middle';
-                const marginX = canvas.width * 0.05, marginY = canvas.height * 0.05;
-                const positions = {
-                    'top-left': { x: marginX, y: marginY, textAlign: 'left' },
-                    'top-center': { x: canvas.width / 2, y: marginY, textAlign: 'center' },
-                    'top-right': { x: canvas.width - marginX, y: marginY, textAlign: 'right' },
-                    'center-left': { x: marginX, y: canvas.height / 2, textAlign: 'left' },
-                    'center': { x: canvas.width / 2, y: canvas.height / 2, textAlign: 'center' },
-                    'center-right': { x: canvas.width - marginX, y: canvas.height / 2, textAlign: 'right' },
-                    'bottom-left': { x: marginX, y: canvas.height - marginY, textAlign: 'left' },
-                    'bottom-center': { x: canvas.width / 2, y: canvas.height - marginY, textAlign: 'center' },
-                    'bottom-right': { x: canvas.width - marginX, y: canvas.height - marginY, textAlign: 'right' }
-                };
-                const pos = positions[wm.position];
-                ctx.textAlign = pos.textAlign;
-                ctx.fillText(wm.text, pos.x, pos.y);
-            }
-            const format = `image/${options.format || fileObj.file.type.split('/')[1] || 'jpeg'}`;
-            const quality = (options.quality || 90) / 100;
-            canvas.toBlob(blob => {
-                const oldName = fileObj.name;
-                const nameWithoutExt = oldName.substring(0, oldName.lastIndexOf('.'));
-                const newExt = (options.format || (format.split('/')[1])).replace('jpeg', 'jpg');
-                resolve({ blob, name: `${nameWithoutExt}.${newExt}` });
-            }, format, quality);
-        };
-        img.onerror = reject;
-        img.src = fileObj.originalUrl;
+        slider.dispatchEvent(new Event('input'));
     });
 }
 
-async function applyChanges(settings) {
-    if (uploadedFiles.length === 0) {
-        alert(languages[currentLanguage].uploadFirst || 'Please upload images first'); return;
-    }
-    showProgress();
-    for (let i = 0; i < uploadedFiles.length; i++) {
-        try {
-            const { blob, name } = await processImage(uploadedFiles[i], settings);
-            URL.revokeObjectURL(uploadedFiles[i].processedUrl);
-            uploadedFiles[i].processedUrl = URL.createObjectURL(blob);
-            uploadedFiles[i].processedBlob = blob;
-            uploadedFiles[i].name = name;
-            updateProgress(((i + 1) / uploadedFiles.length) * 100);
-        } catch (error) {
-            console.error('Error processing image:', error);
-            alert(`Error processing ${uploadedFiles[i].name}.`); break;
+/**
+ * Selects the watermark position.
+ * @param {HTMLElement} element - The clicked position button.
+ */
+function selectPosition(element) {
+    document.querySelectorAll('.position-btn').forEach(btn => btn.classList.remove('active'));
+    element.classList.add('active');
+}
+
+/**
+ * Shows the image enlargement modal.
+ * @param {string} src - The image source URL.
+ */
+function showModal(src) {
+    const modal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    modalImage.src = src;
+    modal.style.display = 'block';
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
         }
-    }
-    renderFileList();
-    updatePreview();
-    hideProgress();
-}
-
-// --- Core Action Functions ---
-function applyResolution() { applyChanges({ width: parseInt(document.getElementById('customWidth').value) || null, height: parseInt(document.getElementById('customHeight').value) || null }); }
-function convertFormat() { applyChanges({ format: document.getElementById('targetFormat').value, quality: parseInt(document.getElementById('qualitySlider').value) }); }
-
-async function compressToTargetSize() {
-    if (uploadedFiles.length === 0) {
-        alert(languages[currentLanguage].uploadFirst || 'Please upload images first'); return;
-    }
-    const targetSizeKB = parseInt(document.getElementById('targetSizeInput').value);
-    if (isNaN(targetSizeKB) || targetSizeKB <= 0) {
-        alert(currentLanguage === 'zh' ? '请输入一个有效的目标大小 (KB)' : 'Please enter a valid target size (KB)'); return;
-    }
-    const targetSizeBytes = targetSizeKB * 1024;
-
-    showProgress();
-    for (let i = 0; i < uploadedFiles.length; i++) {
-        const fileObj = uploadedFiles[i];
-        try {
-            const { blob, name } = await findOptimalBlob(fileObj, targetSizeBytes);
-            URL.revokeObjectURL(fileObj.processedUrl);
-            fileObj.processedUrl = URL.createObjectURL(blob);
-            fileObj.processedBlob = blob;
-            fileObj.name = name;
-            updateProgress(((i + 1) / uploadedFiles.length) * 100);
-        } catch (error) {
-            console.error('Error compressing image:', error);
-            alert(`Error compressing ${fileObj.name}.`); break;
-        }
-    }
-    renderFileList();
-    updatePreview();
-    hideProgress();
-}
-
-async function findOptimalBlob(fileObj, targetSizeBytes) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = async () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-            if (fileObj.file.size < targetSizeBytes && fileObj.file.type === 'image/jpeg') {
-                canvas.toBlob(blob => { resolve({ blob, name: fileObj.name }); }, 'image/jpeg', 0.95); return;
-            }
-
-            let minQuality = 0, maxQuality = 100, bestBlob = null;
-            for (let i = 0; i < 8; i++) {
-                const quality = (minQuality + maxQuality) / 2;
-                const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality / 100));
-                if (blob.size > targetSizeBytes) { maxQuality = quality; } 
-                else { minQuality = quality; bestBlob = blob; }
-            }
-            if (!bestBlob) { bestBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', minQuality / 100)); }
-            
-            const oldName = fileObj.name;
-            const nameWithoutExt = oldName.substring(0, oldName.lastIndexOf('.'));
-            resolve({ blob: bestBlob, name: `${nameWithoutExt}.jpg` });
-        };
-        img.onerror = reject;
-        img.src = fileObj.originalUrl;
-    });
-}
-
-function applyWatermark() {
-    const text = document.getElementById('watermarkText').value;
-    if (!text.trim()) { alert(currentLanguage === 'zh' ? '请输入水印文字' : 'Please enter watermark text'); return; }
-    applyChanges({
-        watermark: {
-            text: text, size: parseFloat(document.getElementById('fontSizeSlider').value),
-            color: document.getElementById('watermarkColor').value,
-            opacity: parseInt(document.getElementById('opacitySlider').value) / 100,
-            position: selectedPosition
-        }
-    });
-}
-
-function batchProcess() {
-    const watermarkText = document.getElementById('watermarkText').value;
-    applyChanges({
-        width: parseInt(document.getElementById('customWidth').value) || null,
-        height: parseInt(document.getElementById('customHeight').value) || null,
-        format: document.getElementById('targetFormat').value,
-        quality: parseInt(document.getElementById('qualitySlider').value),
-        filters: getFilterSettings(),
-        watermark: watermarkText.trim() ? {
-            text: watermarkText, size: parseFloat(document.getElementById('fontSizeSlider').value),
-            color: document.getElementById('watermarkColor').value,
-            opacity: parseInt(document.getElementById('opacitySlider').value) / 100,
-            position: selectedPosition
-        } : null
-    });
-}
-
-async function downloadAll() {
-    const filesToDownload = uploadedFiles.filter(f => f.processedBlob);
-    if (filesToDownload.length === 0) {
-        alert(currentLanguage === 'zh' ? '没有可下载的处理后文件' : 'No processed files to download'); return;
-    }
-    showProgress();
-    if (filesToDownload.length === 1) {
-        const fileObj = filesToDownload[0];
-        const a = document.createElement('a');
-        a.href = fileObj.processedUrl; a.download = fileObj.name;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        updateProgress(100); hideProgress(); return;
-    }
-    const zip = new JSZip();
-    for (let i = 0; i < filesToDownload.length; i++) {
-        zip.file(filesToDownload[i].name, filesToDownload[i].processedBlob);
-        updateProgress(((i + 1) / filesToDownload.length) * 100);
-    }
-    const content = await zip.generateAsync({ type: "blob" });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(content); a.download = "processed_images.zip";
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    hideProgress();
-}
-
-function clearAll() {
-    uploadedFiles.forEach(fileObj => URL.revokeObjectURL(fileObj.processedUrl));
-    uploadedFiles = [];
-    document.getElementById('fileList').innerHTML = '';
-    document.getElementById('fileInput').value = '';
-    resetFilters();
-    updatePreview();
-    alert(currentLanguage === 'zh' ? '所有文件已清空' : 'All files cleared');
+    };
 }
