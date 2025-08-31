@@ -369,3 +369,135 @@ async function applyChanges(settings) {
     updatePreview();
     hideProgress();
 }
+
+
+// --- Core Action Functions ---
+function applyResolution() { applyChanges({ width: parseInt(document.getElementById('customWidth').value) || null, height: parseInt(document.getElementById('customHeight').value) || null }); }
+function convertFormat() { applyChanges({ format: document.getElementById('targetFormat').value, quality: parseInt(document.getElementById('qualitySlider').value) }); }
+
+async function compressToTargetSize() {
+    if (uploadedFiles.length === 0) {
+        alert(languages[currentLanguage].uploadFirst || 'Please upload images first'); return;
+    }
+    const targetSizeKB = parseInt(document.getElementById('targetSizeInput').value);
+    if (isNaN(targetSizeKB) || targetSizeKB <= 0) {
+        alert(currentLanguage === 'zh' ? '请输入一个有效的目标大小 (KB)' : 'Please enter a valid target size (KB)'); return;
+    }
+    const targetSizeBytes = targetSizeKB * 1024;
+
+    showProgress();
+    for (let i = 0; i < uploadedFiles.length; i++) {
+        const fileObj = uploadedFiles[i];
+        try {
+            const { blob, name } = await findOptimalBlob(fileObj, targetSizeBytes);
+            URL.revokeObjectURL(fileObj.processedUrl);
+            fileObj.processedUrl = URL.createObjectURL(blob);
+            fileObj.processedBlob = blob;
+            fileObj.name = name;
+            updateProgress(((i + 1) / uploadedFiles.length) * 100);
+        } catch (error) {
+            console.error('Error compressing image:', error);
+            alert(`Error compressing ${fileObj.name}.`); break;
+        }
+    }
+    renderFileList();
+    updatePreview();
+    hideProgress();
+}
+
+async function findOptimalBlob(fileObj, targetSizeBytes) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = async () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            if (fileObj.file.size < targetSizeBytes && fileObj.file.type === 'image/jpeg') {
+                canvas.toBlob(blob => { resolve({ blob, name: fileObj.name }); }, 'image/jpeg', 0.95); return;
+            }
+
+            let minQuality = 0, maxQuality = 100, bestBlob = null;
+            for (let i = 0; i < 8; i++) {
+                const quality = (minQuality + maxQuality) / 2;
+                const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality / 100));
+                if (blob.size > targetSizeBytes) { maxQuality = quality; } 
+                else { minQuality = quality; bestBlob = blob; }
+            }
+            if (!bestBlob) { bestBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', minQuality / 100)); }
+            
+            const oldName = fileObj.name;
+            const nameWithoutExt = oldName.substring(0, oldName.lastIndexOf('.'));
+            resolve({ blob: bestBlob, name: `${nameWithoutExt}.jpg` });
+        };
+        img.onerror = reject;
+        img.src = fileObj.originalUrl;
+    });
+}
+
+function applyWatermark() {
+    const text = document.getElementById('watermarkText').value;
+    if (!text.trim()) { alert(currentLanguage === 'zh' ? '请输入水印文字' : 'Please enter watermark text'); return; }
+    applyChanges({
+        watermark: {
+            text: text, size: parseFloat(document.getElementById('fontSizeSlider').value),
+            color: document.getElementById('watermarkColor').value,
+            opacity: parseInt(document.getElementById('opacitySlider').value) / 100,
+            position: selectedPosition
+        }
+    });
+}
+
+function batchProcess() {
+    const watermarkText = document.getElementById('watermarkText').value;
+    applyChanges({
+        width: parseInt(document.getElementById('customWidth').value) || null,
+        height: parseInt(document.getElementById('customHeight').value) || null,
+        format: document.getElementById('targetFormat').value,
+        quality: parseInt(document.getElementById('qualitySlider').value),
+        filters: getFilterSettings(),
+        watermark: watermarkText.trim() ? {
+            text: watermarkText, size: parseFloat(document.getElementById('fontSizeSlider').value),
+            color: document.getElementById('watermarkColor').value,
+            opacity: parseInt(document.getElementById('opacitySlider').value) / 100,
+            position: selectedPosition
+        } : null
+    });
+}
+
+async function downloadAll() {
+    const filesToDownload = uploadedFiles.filter(f => f.processedBlob);
+    if (filesToDownload.length === 0) {
+        alert(currentLanguage === 'zh' ? '没有可下载的处理后文件' : 'No processed files to download'); return;
+    }
+    showProgress();
+    if (filesToDownload.length === 1) {
+        const fileObj = filesToDownload[0];
+        const a = document.createElement('a');
+        a.href = fileObj.processedUrl; a.download = fileObj.name;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        updateProgress(100); hideProgress(); return;
+    }
+    const zip = new JSZip();
+    for (let i = 0; i < filesToDownload.length; i++) {
+        zip.file(filesToDownload[i].name, filesToDownload[i].processedBlob);
+        updateProgress(((i + 1) / filesToDownload.length) * 100);
+    }
+    const content = await zip.generateAsync({ type: "blob" });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content); a.download = "processed_images.zip";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    hideProgress();
+}
+
+function clearAll() {
+    uploadedFiles.forEach(fileObj => URL.revokeObjectURL(fileObj.processedUrl));
+    uploadedFiles = [];
+    document.getElementById('fileList').innerHTML = '';
+    document.getElementById('fileInput').value = '';
+    resetFilters();
+    updatePreview();
+    alert(currentLanguage === 'zh' ? '所有文件已清空' : 'All files cleared');
+}
