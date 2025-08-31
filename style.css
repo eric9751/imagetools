@@ -61,6 +61,11 @@ body {
     margin-bottom: 3rem;
 }
 
+.page-title {
+  font-size: 32px;
+  font-weight: bold;
+}
+
 .title h1 {
     font-size: 3rem;
     font-weight: 800;
