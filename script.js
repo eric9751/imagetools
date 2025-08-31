@@ -1,33 +1,76 @@
-// 从这里开始复制
-function setupSlider(sliderId, displayId) {
-    const slider = document.getElementById(sliderId);
-    const display = document.getElementById(displayId);
+// =================================================================================
+// 1. 全局变量 (Global Variables)
+// 将所有全局变量和配置放在文件最顶部，确保任何函数都能安全地访问它们。
+// =================================================================================
+let currentLanguage = 'zh';
+let uploadedFiles = []; // 存储上传的文件对象 { file, originalUrl, processedUrl, processedBlob, name }
+let selectedPosition = 'center';
 
-    if (slider && display) {
-        slider.addEventListener('input', () => {
-            display.textContent = slider.value;
-        });
-    } else {
-        console.error(`错误：找不到 ID 为 '${sliderId}' 或 '${displayId}' 的元素。`);
+// 语言配置
+const languages = {
+    zh: {
+        logo: '图像处理工具 Pro', langBtn: 'English', title: '专业图像处理套件',
+        subtitle: '一站式图像处理解决方案，支持批量操作和多种格式转换',
+        upload: '文件上传', uploadText: '点击或拖拽上传图片', uploadDesc: '支持 JPG, PNG, WEBP 格式',
+        resolution: '分辨率调整', resolutionPreset: '预设分辨率', width: '宽度', height: '高度',
+        applyRes: '应用分辨率', custom: '自定义', format: '格式与质量', targetFormat: '目标格式',
+        quality: '质量 (JPEG/WebP)', convertBtn: '转换格式',
+        compress: '图片压缩',
+        targetSize: '目标大小 (KB)',
+        targetSizeDesc: '输入期望的文件大小。工具将尝试压缩到最接近的尺寸（仅适用于JPEG）。',
+        applyCompress: '应用压缩',
+        beautify: '图片美化',
+        brightness: '亮度', contrast: '对比度', saturate: '饱和度', grayscale: '灰度', resetFilters: '重置美化',
+        watermark: '水印设置', watermarkText: '水印文字', watermarkSize: '水印大小',
+        opacity: '透明度', watermarkColor: '颜色', watermarkPos: '水印位置', addWatermark: '添加水印',
+        preview: '图片预览', previewDesc: '上传图片后将在此显示预览，点击图片可放大',
+        batch: '批量操作', batchDesc: '批量处理将应用所有已配置的设置（分辨率、美化、质量、水印）到全部图片上。',
+        batchProcess: '批量处理', downloadAll: '下载全部', clearAll: '清空文件',
+        posTL: '左上', posTC: '上中', posTR: '右上', posCL: '左中', posC: '居中',
+        posCR: '右中', posBL: '左下', posBC: '下中', posBR: '右下'
+    },
+    en: {
+        logo: 'Image Processor Pro', langBtn: '中文', title: 'Professional Image Processing Suite',
+        subtitle: 'One-stop image processing solution with batch operations and format conversion',
+        upload: 'File Upload', uploadText: 'Click or drag to upload images', uploadDesc: 'Supports JPG, PNG, WEBP formats',
+        resolution: 'Resolution', resolutionPreset: 'Preset Resolution', width: 'Width', height: 'Height',
+        applyRes: 'Apply Resolution', custom: 'Custom', format: 'Format & Quality', targetFormat: 'Target Format',
+        quality: 'Quality (JPEG/WebP)', convertBtn: 'Convert Format',
+        compress: 'Image Compression',
+        targetSize: 'Target Size (KB)',
+        targetSizeDesc: 'Enter the desired file size. The tool will try to compress to the nearest size (JPEG only).',
+        applyCompress: 'Apply Compression',
+        beautify: 'Image Beautification',
+        brightness: 'Brightness', contrast: 'Contrast', saturate: 'Saturation', grayscale: 'Grayscale', resetFilters: 'Reset Filters',
+        watermark: 'Watermark', watermarkText: 'Watermark Text', watermarkSize: 'Watermark Size',
+        opacity: 'Opacity', watermarkColor: 'Color', watermarkPos: 'Watermark Position', addWatermark: 'Add Watermark',
+        preview: 'Image Preview', previewDesc: 'Preview appears here. Click on the image to enlarge.',
+        batch: 'Batch Operations', batchDesc: 'Batch process applies all configured settings (resolution, filters, quality, watermark) to all images.',
+        batchProcess: 'Batch Process', downloadAll: 'Download All', clearAll: 'Clear All',
+        posTL: 'Top-L', posTC: 'Top-C', posTR: 'Top-R', posCL: 'Center-L', posC: 'Center',
+        posCR: 'Center-R', posBL: 'Bottom-L', posBC: 'Bottom-C', posBR: 'Bottom-R'
     }
-}
+};
 
-// --- 初始化所有的滑块 ---
-setupSlider('qualitySlider', 'qualityValue');
-setupSlider('brightnessSlider', 'brightnessValue');
-setupSlider('contrastSlider', 'contrastValue');
-setupSlider('saturateSlider', 'saturateValue');
-setupSlider('grayscaleSlider', 'grayscaleValue');
-setupSlider('fontSizeSlider', 'fontSizeValue');
-setupSlider('opacitySlider', 'opacityValue');
-// 复制到这里结束
 
-// DOM加载完成后初始化
+// =================================================================================
+// 2. 应用初始化 (App Initialization)
+// 这是整个程序的入口。等待DOM加载完毕后，运行初始化函数。
+// =================================================================================
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
     updateUI();
 });
 
+
+// =================================================================================
+// 3. 核心功能函数 (Core Functions)
+// 这里是所有的功能性函数定义。
+// =================================================================================
+
+/**
+ * @description 初始化所有应用功能和事件监听器
+ */
 function initializeApp() {
     setupFileUpload();
     setupEventListeners();
@@ -35,6 +78,9 @@ function initializeApp() {
     setupModal();
 }
 
+/**
+ * @description 设置文件上传区域的事件
+ */
 function setupFileUpload() {
     const fileInput = document.getElementById('fileInput');
     const uploadArea = document.getElementById('uploadArea');
@@ -60,6 +106,9 @@ function setupFileUpload() {
     uploadArea.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
 }
 
+/**
+ * @description 设置通用的事件监听器
+ */
 function setupEventListeners() {
     document.querySelector('.lang-switch').addEventListener('click', toggleLanguage);
     document.getElementById('resolutionPreset').addEventListener('change', function() {
@@ -71,6 +120,9 @@ function setupEventListeners() {
     });
 }
 
+/**
+ * @description 设置所有滑块的实时更新
+ */
 function setupSliders() {
     ['quality', 'opacity', 'fontSize', 'brightness', 'contrast', 'saturate', 'grayscale'].forEach(id => {
         const slider = document.getElementById(`${id}Slider`);
@@ -84,6 +136,9 @@ function setupSliders() {
     });
 }
 
+/**
+ * @description 设置图片预览的点击放大功能
+ */
 function setupModal() {
     const modal = document.getElementById('imageModal');
     document.getElementById('previewArea').addEventListener('click', (e) => {
@@ -97,6 +152,10 @@ function setupModal() {
     });
 }
 
+/**
+ * @description 处理上传的文件
+ * @param {FileList} files - 用户选择或拖拽的文件列表
+ */
 function handleFiles(files) {
     Array.from(files).forEach(file => {
         if (file.type.startsWith('image/')) {
@@ -117,6 +176,9 @@ function handleFiles(files) {
     });
 }
 
+/**
+ * @description 渲染文件列表
+ */
 function renderFileList() {
     const fileList = document.getElementById('fileList');
     fileList.innerHTML = '';
@@ -138,6 +200,10 @@ function renderFileList() {
     });
 }
 
+/**
+ * @description 移除指定索引的文件
+ * @param {number} index - 要移除的文件在 uploadedFiles 数组中的索引
+ */
 function removeFile(index) {
     URL.revokeObjectURL(uploadedFiles[index].processedUrl);
     uploadedFiles.splice(index, 1);
@@ -145,13 +211,16 @@ function removeFile(index) {
     updatePreview();
 }
 
+/**
+ * @description 更新主预览区域
+ */
 function updatePreview() {
     const previewArea = document.getElementById('previewContent');
     const lang = languages[currentLanguage];
     if (uploadedFiles.length > 0) {
         previewArea.innerHTML = `
             <h3>${lang.preview} (1 / ${uploadedFiles.length})</h3>
-            <img id="previewImage" src="${uploadedFiles[0].processedUrl}">
+            <img id="previewImage" src="${uploadedFiles[0].processedUrl}" alt="Image Preview">
             <div class="progress-bar" id="progressBar" style="display: none;"><div class="progress-fill" id="progressFill"></div></div>
         `;
         updatePreviewFilters(); // Apply current filter values to new preview
@@ -163,42 +232,80 @@ function updatePreview() {
     }
 }
 
+/**
+ * @description 切换语言
+ */
 function toggleLanguage() {
     currentLanguage = currentLanguage === 'zh' ? 'en' : 'zh';
     updateUI();
 }
 
+/**
+ * @description 根据当前语言更新UI文本
+ */
 function updateUI() {
     const lang = languages[currentLanguage];
     document.documentElement.lang = currentLanguage;
+
+    // 1. 更新所有带有 data-lang-key 的通用元素
     document.querySelectorAll('[data-lang-key]').forEach(el => {
         const key = el.getAttribute('data-lang-key');
         if (lang[key]) {
+            if (el.tagName === 'LABEL' && el.querySelector('span[id$="Value"]')) {
+                return; // 跳过我们接下来要特殊处理的滑块标签
+            }
             if (el.tagName === 'OPTION') {
                 el.textContent = lang[key];
             } else if (el.placeholder !== undefined) {
                 el.placeholder = lang[key];
             } else {
-                 el.innerHTML = lang[key];
+                el.innerHTML = lang[key];
             }
         }
     });
-    document.querySelector('label[data-lang-key="quality"]').innerHTML = `${lang.quality}: <span id="qualityValue">${document.getElementById('qualitySlider').value}</span>%`;
-    document.querySelector('label[data-lang-key="brightness"]').innerHTML = `${lang.brightness}: <span id="brightnessValue">${document.getElementById('brightnessSlider').value}</span>%`;
-    document.querySelector('label[data-lang-key="contrast"]').innerHTML = `${lang.contrast}: <span id="contrastValue">${document.getElementById('contrastSlider').value}</span>%`;
-    document.querySelector('label[data-lang-key="saturate"]').innerHTML = `${lang.saturate}: <span id="saturateValue">${document.getElementById('saturateSlider').value}</span>%`;
-    document.querySelector('label[data-lang-key="grayscale"]').innerHTML = `${lang.grayscale}: <span id="grayscaleValue">${document.getElementById('grayscaleSlider').value}</span>%`;
-    document.querySelector('label[data-lang-key="watermarkSize"]').innerHTML = `${lang.watermarkSize}: <span id="fontSizeValue">${document.getElementById('fontSizeSlider').value}</span>%`;
-    document.querySelector('label[data-lang-key="opacity"]').innerHTML = `${lang.opacity}: <span id="opacityValue">${document.getElementById('opacitySlider').value}</span>%`;
+
+    // 2. 单独、安全地更新滑块标签的文本
+    const updateSliderLabel = (key) => {
+        const label = document.querySelector(`label[data-lang-key="${key}"]`);
+        if (label && label.childNodes.length > 0) {
+            label.childNodes[0].nodeValue = `${lang[key]}: `;
+        }
+    };
+    
+    updateSliderLabel('quality');
+    updateSliderLabel('brightness');
+    updateSliderLabel('contrast');
+    updateSliderLabel('saturate');
+    updateSliderLabel('grayscale');
+    updateSliderLabel('watermarkSize');
+    updateSliderLabel('opacity');
+
+    // 3. 更新剩余的 placeholder
     document.getElementById('targetSizeInput').placeholder = currentLanguage === 'zh' ? '例如: 500' : 'E.g., 500';
     document.getElementById('watermarkText').placeholder = currentLanguage === 'zh' ? '© 您的名字 2025' : '© Your Name 2025';
+
+    const previewDesc = document.querySelector('[data-lang-key="previewDesc"]');
+    if (previewDesc) {
+        previewDesc.textContent = lang.previewDesc;
+    }
 }
 
+
+/**
+ * @description 选择水印位置
+ * @param {HTMLElement} element - 被点击的按钮元素
+ * @param {string} position - 位置标识符
+ */
 function selectPosition(element, position) {
     document.querySelectorAll('.position-btn').forEach(btn => btn.classList.remove('active'));
     element.classList.add('active');
     selectedPosition = position;
 }
+
+// ... (此处省略了进度条、图像处理等其他功能函数，它们没有结构性问题) ...
+// 您可以将您文件中的 showProgress, hideProgress, ... clearAll 函数粘贴在这里。
+// 为了简洁，我将它们从这个示例中移除，但请确保将它们加回来。
+// 确保下面的所有函数都在您的文件中。
 
 function showProgress() {
     const progressBar = document.getElementById('progressBar');
@@ -223,7 +330,7 @@ function updateProgress(percent) {
 function getFilterSettings() {
      const filters = {};
      document.querySelectorAll('.beautify-slider').forEach(slider => {
-          filters[slider.dataset.filter] = `${slider.value}${slider.dataset.unit}`;
+         filters[slider.dataset.filter] = `${slider.value}${slider.dataset.unit}`;
      });
      return filters;
 }
@@ -375,7 +482,7 @@ async function findOptimalBlob(fileObj, targetSizeBytes) {
                 else { minQuality = quality; bestBlob = blob; }
             }
             if (!bestBlob) { bestBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', minQuality / 100)); }
-            
+           
             const oldName = fileObj.name;
             const nameWithoutExt = oldName.substring(0, oldName.lastIndexOf('.'));
             resolve({ blob: bestBlob, name: `${nameWithoutExt}.jpg` });
@@ -449,54 +556,3 @@ function clearAll() {
     updatePreview();
     alert(currentLanguage === 'zh' ? '所有文件已清空' : 'All files cleared');
 }
-
-// 全局变量
-let currentLanguage = 'zh';
-let uploadedFiles = []; // 存储上传的文件对象 { file, originalUrl, processedUrl, processedBlob, name }
-let selectedPosition = 'center';
-
-// 语言配置
-const languages = {
-    zh: {
-        logo: '图像处理工具 Pro', langBtn: 'English', title: '专业图像处理套件',
-        subtitle: '一站式图像处理解决方案，支持批量操作和多种格式转换',
-        upload: '文件上传', uploadText: '点击或拖拽上传图片', uploadDesc: '支持 JPG, PNG, WEBP 格式',
-        resolution: '分辨率调整', resolutionPreset: '预设分辨率', width: '宽度', height: '高度',
-        applyRes: '应用分辨率', custom: '自定义', format: '格式与质量', targetFormat: '目标格式',
-        quality: '质量 (JPEG/WebP)', convertBtn: '转换格式',
-        compress: '图片压缩',
-        targetSize: '目标大小 (KB)',
-        targetSizeDesc: '输入期望的文件大小。工具将尝试压缩到最接近的尺寸（仅适用于JPEG）。',
-        applyCompress: '应用压缩',
-        beautify: '图片美化',
-        brightness: '亮度', contrast: '对比度', saturate: '饱和度', grayscale: '灰度', resetFilters: '重置美化',
-        watermark: '水印设置', watermarkText: '水印文字', watermarkSize: '水印大小',
-        opacity: '透明度', watermarkColor: '颜色', watermarkPos: '水印位置', addWatermark: '添加水印',
-        preview: '图片预览', previewDesc: '上传图片后将在此显示预览，点击图片可放大',
-        batch: '批量操作', batchDesc: '批量处理将应用所有已配置的设置（分辨率、美化、质量、水印）到全部图片上。',
-        batchProcess: '批量处理', downloadAll: '下载全部', clearAll: '清空文件',
-        posTL: '左上', posTC: '上中', posTR: '右上', posCL: '左中', posC: '居中',
-        posCR: '右中', posBL: '左下', posBC: '下中', posBR: '右下'
-    },
-    en: {
-        logo: 'Image Processor Pro', langBtn: '中文', title: 'Professional Image Processing Suite',
-        subtitle: 'One-stop image processing solution with batch operations and format conversion',
-        upload: 'File Upload', uploadText: 'Click or drag to upload images', uploadDesc: 'Supports JPG, PNG, WEBP formats',
-        resolution: 'Resolution', resolutionPreset: 'Preset Resolution', width: 'Width', height: 'Height',
-        applyRes: 'Apply Resolution', custom: 'Custom', format: 'Format & Quality', targetFormat: 'Target Format',
-        quality: 'Quality (JPEG/WebP)', convertBtn: 'Convert Format',
-        compress: 'Image Compression',
-        targetSize: 'Target Size (KB)',
-        targetSizeDesc: 'Enter the desired file size. The tool will try to compress to the nearest size (JPEG only).',
-        applyCompress: 'Apply Compression',
-        beautify: 'Image Beautification',
-        brightness: 'Brightness', contrast: 'Contrast', saturate: 'Saturation', grayscale: 'Grayscale', resetFilters: 'Reset Filters',
-        watermark: 'Watermark', watermarkText: 'Watermark Text', watermarkSize: 'Watermark Size',
-        opacity: 'Opacity', watermarkColor: 'Color', watermarkPos: 'Watermark Position', addWatermark: 'Add Watermark',
-        preview: 'Image Preview', previewDesc: 'Preview appears here. Click on the image to enlarge.',
-        batch: 'Batch Operations', batchDesc: 'Batch process applies all configured settings (resolution, filters, quality, watermark) to all images.',
-        batchProcess: 'Batch Process', downloadAll: 'Download All', clearAll: 'Clear All',
-        posTL: 'Top-L', posTC: 'Top-C', posTR: 'Top-R', posCL: 'Center-L', posC: 'Center',
-        posCR: 'Center-R', posBL: 'Bottom-L', posBC: 'Bottom-C', posBR: 'Bottom-R'
-    }
-};
