@@ -1,6 +1,5 @@
 // =================================================================================
 // 1. 全局变量 (Global Variables)
-// 将所有全局变量和配置放在文件最顶部，确保任何函数都能安全地访问它们。
 // =================================================================================
 let currentLanguage = 'zh';
 let uploadedFiles = []; // 存储上传的文件对象 { file, originalUrl, processedUrl, processedBlob, name }
@@ -55,27 +54,63 @@ const languages = {
 
 // =================================================================================
 // 2. 应用初始化 (App Initialization)
-// 这是整个程序的入口。等待DOM加载完毕后，运行初始化函数。
 // =================================================================================
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
-    updateUI();
+    updateUI(); // 首次加载时更新UI并绑定滑块事件
 });
 
 
 // =================================================================================
 // 3. 核心功能函数 (Core Functions)
-// 这里是所有的功能性函数定义。
 // =================================================================================
 
 /**
- * @description 初始化所有应用功能和事件监听器
+ * @description 初始化应用的基本功能（除滑块外）
  */
 function initializeApp() {
     setupFileUpload();
     setupEventListeners();
-    setupSliders();
     setupModal();
+}
+
+/**
+ * @description 根据当前语言更新所有UI文本，并在最后重新绑定滑块事件
+ */
+function updateUI() {
+    const lang = languages[currentLanguage];
+    document.documentElement.lang = currentLanguage;
+    
+    // 使用 .innerHTML 更新所有带语言键的元素
+    document.querySelectorAll('[data-lang-key]').forEach(el => {
+        const key = el.getAttribute('data-lang-key');
+        if (lang[key]) {
+            if (el.tagName === 'OPTION') {
+                el.textContent = lang[key];
+            } else if (el.placeholder !== undefined) {
+                el.placeholder = lang[key];
+            } else {
+                el.innerHTML = lang[key];
+            }
+        }
+    });
+
+    // 由于上面的操作会重置 label，我们需要手动恢复其内部的 span 结构
+    // 注意：这里的初始值（如90, 100）仅用于显示，实际值由滑块的value属性决定
+    document.querySelector('label[data-lang-key="quality"]').innerHTML = `${lang.quality}: <span id="qualityValue">90</span>%`;
+    document.querySelector('label[data-lang-key="brightness"]').innerHTML = `${lang.brightness}: <span id="brightnessValue">100</span>%`;
+    document.querySelector('label[data-lang-key="contrast"]').innerHTML = `${lang.contrast}: <span id="contrastValue">100</span>%`;
+    document.querySelector('label[data-lang-key="saturate"]').innerHTML = `${lang.saturate}: <span id="saturateValue">100</span>%`;
+    document.querySelector('label[data-lang-key="grayscale"]').innerHTML = `${lang.grayscale}: <span id="grayscaleValue">0</span>%`;
+    document.querySelector('label[data-lang-key="watermarkSize"]').innerHTML = `${lang.watermarkSize}: <span id="fontSizeValue">5</span>%`;
+    document.querySelector('label[data-lang-key="opacity"]').innerHTML = `${lang.opacity}: <span id="opacityValue">70</span>%`;
+    
+    // 更新剩余的 placeholder
+    document.getElementById('targetSizeInput').placeholder = currentLanguage === 'zh' ? '例如: 500' : 'E.g., 500';
+    document.getElementById('watermarkText').placeholder = currentLanguage === 'zh' ? '© 您的名字 2025' : '© Your Name 2025';
+
+    // 关键修复：在所有UI更新、DOM重建之后，重新调用 setupSliders() 来为新的 <span> 元素绑定事件。
+    setupSliders();
 }
 
 /**
@@ -128,6 +163,8 @@ function setupSliders() {
         const slider = document.getElementById(`${id}Slider`);
         const valueSpan = document.getElementById(`${id}Value`);
         if (slider && valueSpan) {
+            // 绑定时，立即用滑块的当前值更新文本，以保证一致性
+            valueSpan.textContent = slider.value; 
             slider.addEventListener('input', () => { valueSpan.textContent = slider.value; });
         }
     });
@@ -152,10 +189,6 @@ function setupModal() {
     });
 }
 
-/**
- * @description 处理上传的文件
- * @param {FileList} files - 用户选择或拖拽的文件列表
- */
 function handleFiles(files) {
     Array.from(files).forEach(file => {
         if (file.type.startsWith('image/')) {
@@ -165,8 +198,8 @@ function handleFiles(files) {
                     file: file, originalUrl: e.target.result,
                     processedUrl: e.target.result, processedBlob: null, name: file.name
                 });
-                if (uploadedFiles.length === 1) { // Only reset filters for the first image
-                     resetFilters();
+                if (uploadedFiles.length === 1) {
+                    resetFilters();
                 }
                 renderFileList();
                 updatePreview();
@@ -176,9 +209,6 @@ function handleFiles(files) {
     });
 }
 
-/**
- * @description 渲染文件列表
- */
 function renderFileList() {
     const fileList = document.getElementById('fileList');
     fileList.innerHTML = '';
@@ -200,10 +230,6 @@ function renderFileList() {
     });
 }
 
-/**
- * @description 移除指定索引的文件
- * @param {number} index - 要移除的文件在 uploadedFiles 数组中的索引
- */
 function removeFile(index) {
     URL.revokeObjectURL(uploadedFiles[index].processedUrl);
     uploadedFiles.splice(index, 1);
@@ -211,9 +237,6 @@ function removeFile(index) {
     updatePreview();
 }
 
-/**
- * @description 更新主预览区域
- */
 function updatePreview() {
     const previewArea = document.getElementById('previewContent');
     const lang = languages[currentLanguage];
@@ -223,7 +246,7 @@ function updatePreview() {
             <img id="previewImage" src="${uploadedFiles[0].processedUrl}" alt="Image Preview">
             <div class="progress-bar" id="progressBar" style="display: none;"><div class="progress-fill" id="progressFill"></div></div>
         `;
-        updatePreviewFilters(); // Apply current filter values to new preview
+        updatePreviewFilters();
     } else {
         previewArea.innerHTML = `
             <h3 data-lang-key="preview">${lang.preview}</h3>
@@ -232,80 +255,16 @@ function updatePreview() {
     }
 }
 
-/**
- * @description 切换语言
- */
 function toggleLanguage() {
     currentLanguage = currentLanguage === 'zh' ? 'en' : 'zh';
     updateUI();
 }
 
-/**
- * @description 根据当前语言更新UI文本
- */
-function updateUI() {
-    const lang = languages[currentLanguage];
-    document.documentElement.lang = currentLanguage;
-
-    // 1. 更新所有带有 data-lang-key 的通用元素
-    document.querySelectorAll('[data-lang-key]').forEach(el => {
-        const key = el.getAttribute('data-lang-key');
-        if (lang[key]) {
-            if (el.tagName === 'LABEL' && el.querySelector('span[id$="Value"]')) {
-                return; // 跳过我们接下来要特殊处理的滑块标签
-            }
-            if (el.tagName === 'OPTION') {
-                el.textContent = lang[key];
-            } else if (el.placeholder !== undefined) {
-                el.placeholder = lang[key];
-            } else {
-                el.innerHTML = lang[key];
-            }
-        }
-    });
-
-    // 2. 单独、安全地更新滑块标签的文本
-    const updateSliderLabel = (key) => {
-        const label = document.querySelector(`label[data-lang-key="${key}"]`);
-        if (label && label.childNodes.length > 0) {
-            label.childNodes[0].nodeValue = `${lang[key]}: `;
-        }
-    };
-    
-    updateSliderLabel('quality');
-    updateSliderLabel('brightness');
-    updateSliderLabel('contrast');
-    updateSliderLabel('saturate');
-    updateSliderLabel('grayscale');
-    updateSliderLabel('watermarkSize');
-    updateSliderLabel('opacity');
-
-    // 3. 更新剩余的 placeholder
-    document.getElementById('targetSizeInput').placeholder = currentLanguage === 'zh' ? '例如: 500' : 'E.g., 500';
-    document.getElementById('watermarkText').placeholder = currentLanguage === 'zh' ? '© 您的名字 2025' : '© Your Name 2025';
-
-    const previewDesc = document.querySelector('[data-lang-key="previewDesc"]');
-    if (previewDesc) {
-        previewDesc.textContent = lang.previewDesc;
-    }
-}
-
-
-/**
- * @description 选择水印位置
- * @param {HTMLElement} element - 被点击的按钮元素
- * @param {string} position - 位置标识符
- */
 function selectPosition(element, position) {
     document.querySelectorAll('.position-btn').forEach(btn => btn.classList.remove('active'));
     element.classList.add('active');
     selectedPosition = position;
 }
-
-// ... (此处省略了进度条、图像处理等其他功能函数，它们没有结构性问题) ...
-// 您可以将您文件中的 showProgress, hideProgress, ... clearAll 函数粘贴在这里。
-// 为了简洁，我将它们从这个示例中移除，但请确保将它们加回来。
-// 确保下面的所有函数都在您的文件中。
 
 function showProgress() {
     const progressBar = document.getElementById('progressBar');
@@ -328,11 +287,11 @@ function updateProgress(percent) {
 }
 
 function getFilterSettings() {
-     const filters = {};
-     document.querySelectorAll('.beautify-slider').forEach(slider => {
-         filters[slider.dataset.filter] = `${slider.value}${slider.dataset.unit}`;
-     });
-     return filters;
+    const filters = {};
+    document.querySelectorAll('.beautify-slider').forEach(slider => {
+        filters[slider.dataset.filter] = `${slider.value}${slider.dataset.unit}`;
+    });
+    return filters;
 }
 
 function updatePreviewFilters() {
@@ -348,7 +307,8 @@ function resetFilters() {
     document.getElementById('saturateSlider').value = 100;
     document.getElementById('grayscaleSlider').value = 0;
     document.querySelectorAll('.beautify-slider').forEach(slider => {
-        document.getElementById(`${slider.id.replace('Slider', 'Value')}`).textContent = slider.value;
+        const valueSpan = document.getElementById(`${slider.id.replace('Slider', 'Value')}`);
+        if(valueSpan) valueSpan.textContent = slider.value;
     });
     updatePreviewFilters();
 }
@@ -356,16 +316,17 @@ function resetFilters() {
 async function processImage(fileObj, options) {
     return new Promise((resolve, reject) => {
         const img = new Image();
+        img.crossOrigin = "Anonymous"; // 解决Canvas污染问题
         img.onload = () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = options.width || img.width;
             canvas.height = options.height || img.height;
-            if(options.filters) {
-               ctx.filter = Object.entries(options.filters).map(([key, value]) => `${key}(${value})`).join(' ');
+            if (options.filters) {
+                ctx.filter = Object.entries(options.filters).map(([key, value]) => `${key}(${value})`).join(' ');
             }
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            ctx.filter = 'none'; 
+            ctx.filter = 'none';
             if (options.watermark && options.watermark.text) {
                 const wm = options.watermark;
                 const fontSize = (canvas.width * (wm.size / 100));
@@ -426,72 +387,9 @@ async function applyChanges(settings) {
     hideProgress();
 }
 
-// --- Core Action Functions ---
+// --- 单个功能按钮的调用 ---
 function applyResolution() { applyChanges({ width: parseInt(document.getElementById('customWidth').value) || null, height: parseInt(document.getElementById('customHeight').value) || null }); }
 function convertFormat() { applyChanges({ format: document.getElementById('targetFormat').value, quality: parseInt(document.getElementById('qualitySlider').value) }); }
-
-async function compressToTargetSize() {
-    if (uploadedFiles.length === 0) {
-        alert(languages[currentLanguage].uploadFirst || 'Please upload images first'); return;
-    }
-    const targetSizeKB = parseInt(document.getElementById('targetSizeInput').value);
-    if (isNaN(targetSizeKB) || targetSizeKB <= 0) {
-        alert(currentLanguage === 'zh' ? '请输入一个有效的目标大小 (KB)' : 'Please enter a valid target size (KB)'); return;
-    }
-    const targetSizeBytes = targetSizeKB * 1024;
-
-    showProgress();
-    for (let i = 0; i < uploadedFiles.length; i++) {
-        const fileObj = uploadedFiles[i];
-        try {
-            const { blob, name } = await findOptimalBlob(fileObj, targetSizeBytes);
-            URL.revokeObjectURL(fileObj.processedUrl);
-            fileObj.processedUrl = URL.createObjectURL(blob);
-            fileObj.processedBlob = blob;
-            fileObj.name = name;
-            updateProgress(((i + 1) / uploadedFiles.length) * 100);
-        } catch (error) {
-            console.error('Error compressing image:', error);
-            alert(`Error compressing ${fileObj.name}.`); break;
-        }
-    }
-    renderFileList();
-    updatePreview();
-    hideProgress();
-}
-
-async function findOptimalBlob(fileObj, targetSizeBytes) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = async () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-            if (fileObj.file.size < targetSizeBytes && fileObj.file.type === 'image/jpeg') {
-                canvas.toBlob(blob => { resolve({ blob, name: fileObj.name }); }, 'image/jpeg', 0.95); return;
-            }
-
-            let minQuality = 0, maxQuality = 100, bestBlob = null;
-            for (let i = 0; i < 8; i++) {
-                const quality = (minQuality + maxQuality) / 2;
-                const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality / 100));
-                if (blob.size > targetSizeBytes) { maxQuality = quality; } 
-                else { minQuality = quality; bestBlob = blob; }
-            }
-            if (!bestBlob) { bestBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', minQuality / 100)); }
-           
-            const oldName = fileObj.name;
-            const nameWithoutExt = oldName.substring(0, oldName.lastIndexOf('.'));
-            resolve({ blob: bestBlob, name: `${nameWithoutExt}.jpg` });
-        };
-        img.onerror = reject;
-        img.src = fileObj.originalUrl;
-    });
-}
-
 function applyWatermark() {
     const text = document.getElementById('watermarkText').value;
     if (!text.trim()) { alert(currentLanguage === 'zh' ? '请输入水印文字' : 'Please enter watermark text'); return; }
@@ -505,6 +403,7 @@ function applyWatermark() {
     });
 }
 
+// --- 批量处理与下载 ---
 function batchProcess() {
     const watermarkText = document.getElementById('watermarkText').value;
     applyChanges({
@@ -555,4 +454,73 @@ function clearAll() {
     resetFilters();
     updatePreview();
     alert(currentLanguage === 'zh' ? '所有文件已清空' : 'All files cleared');
+}
+
+// --- 压缩到指定大小的核心函数 ---
+async function compressToTargetSize() {
+    if (uploadedFiles.length === 0) {
+        alert(languages[currentLanguage].uploadFirst || 'Please upload images first'); return;
+    }
+    const targetSizeKB = parseInt(document.getElementById('targetSizeInput').value);
+    if (isNaN(targetSizeKB) || targetSizeKB <= 0) {
+        alert(currentLanguage === 'zh' ? '请输入一个有效的目标大小 (KB)' : 'Please enter a valid target size (KB)'); return;
+    }
+    const targetSizeBytes = targetSizeKB * 1024;
+
+    showProgress();
+    for (let i = 0; i < uploadedFiles.length; i++) {
+        const fileObj = uploadedFiles[i];
+        try {
+            const { blob, name } = await findOptimalBlob(fileObj, targetSizeBytes);
+            URL.revokeObjectURL(fileObj.processedUrl);
+            fileObj.processedUrl = URL.createObjectURL(blob);
+            fileObj.processedBlob = blob;
+            fileObj.name = name;
+            updateProgress(((i + 1) / uploadedFiles.length) * 100);
+        } catch (error) {
+            console.error('Error compressing image:', error);
+            alert(`Error compressing ${fileObj.name}.`); break;
+        }
+    }
+    renderFileList();
+    updatePreview();
+    hideProgress();
+}
+
+async function findOptimalBlob(fileObj, targetSizeBytes) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = async () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            if (fileObj.file.size < targetSizeBytes && fileObj.file.type === 'image/jpeg') {
+                canvas.toBlob(blob => { resolve({ blob, name: fileObj.name }); }, 'image/jpeg', 0.95); return;
+            }
+
+            let minQuality = 0, maxQuality = 100, bestBlob = null;
+            // 使用二分查找法逼近目标大小
+            for (let i = 0; i < 8; i++) {
+                const quality = (minQuality + maxQuality) / 2;
+                const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality / 100));
+                if (blob.size > targetSizeBytes) {
+                    maxQuality = quality;
+                } else {
+                    minQuality = quality;
+                    bestBlob = blob;
+                }
+            }
+            if (!bestBlob) { bestBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', minQuality / 100)); }
+           
+            const oldName = fileObj.name;
+            const nameWithoutExt = oldName.substring(0, oldName.lastIndexOf('.'));
+            resolve({ blob: bestBlob, name: `${nameWithoutExt}.jpg` });
+        };
+        img.onerror = reject;
+        img.src = fileObj.originalUrl;
+    });
 }
