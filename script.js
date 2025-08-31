@@ -72,3 +72,300 @@ const languages = {
         posCR: 'Center-R', posBL: 'Bottom-L', posBC: 'Bottom-C', posBR: 'Bottom-R'
     }
 };
+
+// DOM加载完成后初始化
+document.addEventListener('DOMContentLoaded', () => {
+    initializeApp();
+    updateUI();
+});
+
+function initializeApp() {
+    setupFileUpload();
+    setupEventListeners();
+    setupSliders();
+    setupModal();
+}
+
+function setupFileUpload() {
+    const fileInput = document.getElementById('fileInput');
+    const uploadArea = document.getElementById('uploadArea');
+    uploadArea.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, e => {
+            e.preventDefault(); e.stopPropagation();
+        }, false);
+    });
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, () => {
+            uploadArea.style.borderColor = '#00d4ff';
+            uploadArea.style.backgroundColor = 'rgba(0, 212, 255, 0.05)';
+        }, false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, () => {
+            uploadArea.style.borderColor = 'rgba(0, 212, 255, 0.3)';
+            uploadArea.style.backgroundColor = '';
+        }, false);
+    });
+    uploadArea.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
+}
+
+function setupEventListeners() {
+    document.querySelector('.lang-switch').addEventListener('click', toggleLanguage);
+    document.getElementById('resolutionPreset').addEventListener('change', function() {
+        if (this.value !== 'custom') {
+            const [width, height] = this.value.split('x');
+            document.getElementById('customWidth').value = width;
+            document.getElementById('customHeight').value = height;
+        }
+    });
+}
+
+function setupSliders() {
+    ['quality', 'opacity', 'fontSize', 'brightness', 'contrast', 'saturate', 'grayscale'].forEach(id => {
+        const slider = document.getElementById(`${id}Slider`);
+        const valueSpan = document.getElementById(`${id}Value`);
+        if (slider && valueSpan) {
+            slider.addEventListener('input', () => { valueSpan.textContent = slider.value; });
+        }
+    });
+    document.querySelectorAll('.beautify-slider').forEach(slider => {
+        slider.addEventListener('input', updatePreviewFilters);
+    });
+}
+
+function setupModal() {
+    const modal = document.getElementById('imageModal');
+    document.getElementById('previewArea').addEventListener('click', (e) => {
+        if (e.target.tagName === 'IMG') {
+            document.getElementById('modalImage').src = e.target.src;
+            modal.style.display = "block";
+        }
+    });
+    modal.addEventListener('click', () => {
+        modal.style.display = "none";
+    });
+}
+
+function handleFiles(files) {
+    Array.from(files).forEach(file => {
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedFiles.push({
+                    file: file, originalUrl: e.target.result,
+                    processedUrl: e.target.result, processedBlob: null, name: file.name
+                });
+                if (uploadedFiles.length === 1) { // Only reset filters for the first image
+                     resetFilters();
+                }
+                renderFileList();
+                updatePreview();
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+function renderFileList() {
+    const fileList = document.getElementById('fileList');
+    fileList.innerHTML = '';
+    uploadedFiles.forEach((fileObj, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        const blob = fileObj.processedBlob || fileObj.file;
+        fileItem.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 1rem; overflow: hidden;">
+                <img src="${fileObj.processedUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; flex-shrink: 0;">
+                <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <div style="font-weight: 600; overflow: hidden; text-overflow: ellipsis;">${fileObj.name}</div>
+                    <div style="font-size: 0.9rem; opacity: 0.7;">${(blob.size / 1024).toFixed(1)} KB</div>
+                </div>
+            </div>
+            <button onclick="removeFile(${index})" style="background: rgba(255, 0, 0, 0.2); border: 1px solid rgba(255, 0, 0, 0.3); border-radius: 50%; width: 24px; height: 24px; color: #ff6b6b; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 0;">×</button>
+        `;
+        fileList.appendChild(fileItem);
+    });
+}
+
+function removeFile(index) {
+    URL.revokeObjectURL(uploadedFiles[index].processedUrl);
+    uploadedFiles.splice(index, 1);
+    renderFileList();
+    updatePreview();
+}
+
+function updatePreview() {
+    const previewArea = document.getElementById('previewContent');
+    const lang = languages[currentLanguage];
+    if (uploadedFiles.length > 0) {
+        previewArea.innerHTML = `
+            <h3>${lang.preview} (1 / ${uploadedFiles.length})</h3>
+            <img id="previewImage" src="${uploadedFiles[0].processedUrl}">
+            <div class="progress-bar" id="progressBar" style="display: none;"><div class="progress-fill" id="progressFill"></div></div>
+        `;
+        updatePreviewFilters(); // Apply current filter values to new preview
+    } else {
+        previewArea.innerHTML = `
+            <h3 data-lang-key="preview">${lang.preview}</h3>
+            <p data-lang-key="previewDesc">${lang.previewDesc}</p>
+        `;
+    }
+}
+
+function toggleLanguage() {
+    currentLanguage = currentLanguage === 'zh' ? 'en' : 'zh';
+    updateUI();
+}
+
+function updateUI() {
+    const lang = languages[currentLanguage];
+    document.documentElement.lang = currentLanguage;
+    document.querySelectorAll('[data-lang-key]').forEach(el => {
+        const key = el.getAttribute('data-lang-key');
+        if (lang[key]) {
+            if (el.tagName === 'OPTION') {
+                el.textContent = lang[key];
+            } else if (el.placeholder !== undefined) {
+                el.placeholder = lang[key];
+            } else {
+                 el.innerHTML = lang[key];
+            }
+        }
+    });
+    document.querySelector('label[data-lang-key="quality"]').innerHTML = `${lang.quality}: <span id="qualityValue">${document.getElementById('qualitySlider').value}</span>%`;
+    document.querySelector('label[data-lang-key="brightness"]').innerHTML = `${lang.brightness}: <span id="brightnessValue">${document.getElementById('brightnessSlider').value}</span>%`;
+    document.querySelector('label[data-lang-key="contrast"]').innerHTML = `${lang.contrast}: <span id="contrastValue">${document.getElementById('contrastSlider').value}</span>%`;
+    document.querySelector('label[data-lang-key="saturate"]').innerHTML = `${lang.saturate}: <span id="saturateValue">${document.getElementById('saturateSlider').value}</span>%`;
+    document.querySelector('label[data-lang-key="grayscale"]').innerHTML = `${lang.grayscale}: <span id="grayscaleValue">${document.getElementById('grayscaleSlider').value}</span>%`;
+    document.querySelector('label[data-lang-key="watermarkSize"]').innerHTML = `${lang.watermarkSize}: <span id="fontSizeValue">${document.getElementById('fontSizeSlider').value}</span>%`;
+    document.querySelector('label[data-lang-key="opacity"]').innerHTML = `${lang.opacity}: <span id="opacityValue">${document.getElementById('opacitySlider').value}</span>%`;
+    document.getElementById('targetSizeInput').placeholder = currentLanguage === 'zh' ? '例如: 500' : 'E.g., 500';
+    document.getElementById('watermarkText').placeholder = currentLanguage === 'zh' ? '© 您的名字 2025' : '© Your Name 2025';
+}
+
+function selectPosition(element, position) {
+    document.querySelectorAll('.position-btn').forEach(btn => btn.classList.remove('active'));
+    element.classList.add('active');
+    selectedPosition = position;
+}
+
+function showProgress() {
+    const progressBar = document.getElementById('progressBar');
+    if (progressBar) {
+        progressBar.style.display = 'block';
+        document.getElementById('progressFill').style.width = '0%';
+    }
+}
+
+function hideProgress() {
+    setTimeout(() => {
+        const progressBar = document.getElementById('progressBar');
+        if (progressBar) progressBar.style.display = 'none';
+    }, 500);
+}
+
+function updateProgress(percent) {
+    const progressFill = document.getElementById('progressFill');
+    if (progressFill) progressFill.style.width = percent + '%';
+}
+
+function getFilterSettings() {
+     const filters = {};
+     document.querySelectorAll('.beautify-slider').forEach(slider => {
+          filters[slider.dataset.filter] = `${slider.value}${slider.dataset.unit}`;
+     });
+     return filters;
+}
+
+function updatePreviewFilters() {
+    const previewImg = document.getElementById('previewImage');
+    if (!previewImg) return;
+    const filters = getFilterSettings();
+    previewImg.style.filter = Object.entries(filters).map(([key, value]) => `${key}(${value})`).join(' ');
+}
+
+function resetFilters() {
+    document.getElementById('brightnessSlider').value = 100;
+    document.getElementById('contrastSlider').value = 100;
+    document.getElementById('saturateSlider').value = 100;
+    document.getElementById('grayscaleSlider').value = 0;
+    document.querySelectorAll('.beautify-slider').forEach(slider => {
+        document.getElementById(`${slider.id.replace('Slider', 'Value')}`).textContent = slider.value;
+    });
+    updatePreviewFilters();
+}
+
+async function processImage(fileObj, options) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = options.width || img.width;
+            canvas.height = options.height || img.height;
+            if(options.filters) {
+               ctx.filter = Object.entries(options.filters).map(([key, value]) => `${key}(${value})`).join(' ');
+            }
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            ctx.filter = 'none'; 
+            if (options.watermark && options.watermark.text) {
+                const wm = options.watermark;
+                const fontSize = (canvas.width * (wm.size / 100));
+                ctx.font = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+                ctx.fillStyle = wm.color;
+                ctx.globalAlpha = wm.opacity;
+                ctx.textBaseline = 'middle';
+                const marginX = canvas.width * 0.05, marginY = canvas.height * 0.05;
+                const positions = {
+                    'top-left': { x: marginX, y: marginY, textAlign: 'left' },
+                    'top-center': { x: canvas.width / 2, y: marginY, textAlign: 'center' },
+                    'top-right': { x: canvas.width - marginX, y: marginY, textAlign: 'right' },
+                    'center-left': { x: marginX, y: canvas.height / 2, textAlign: 'left' },
+                    'center': { x: canvas.width / 2, y: canvas.height / 2, textAlign: 'center' },
+                    'center-right': { x: canvas.width - marginX, y: canvas.height / 2, textAlign: 'right' },
+                    'bottom-left': { x: marginX, y: canvas.height - marginY, textAlign: 'left' },
+                    'bottom-center': { x: canvas.width / 2, y: canvas.height - marginY, textAlign: 'center' },
+                    'bottom-right': { x: canvas.width - marginX, y: canvas.height - marginY, textAlign: 'right' }
+                };
+                const pos = positions[wm.position];
+                ctx.textAlign = pos.textAlign;
+                ctx.fillText(wm.text, pos.x, pos.y);
+            }
+            const format = `image/${options.format || fileObj.file.type.split('/')[1] || 'jpeg'}`;
+            const quality = (options.quality || 90) / 100;
+            canvas.toBlob(blob => {
+                const oldName = fileObj.name;
+                const nameWithoutExt = oldName.substring(0, oldName.lastIndexOf('.'));
+                const newExt = (options.format || (format.split('/')[1])).replace('jpeg', 'jpg');
+                resolve({ blob, name: `${nameWithoutExt}.${newExt}` });
+            }, format, quality);
+        };
+        img.onerror = reject;
+        img.src = fileObj.originalUrl;
+    });
+}
+
+async function applyChanges(settings) {
+    if (uploadedFiles.length === 0) {
+        alert(languages[currentLanguage].uploadFirst || 'Please upload images first'); return;
+    }
+    showProgress();
+    for (let i = 0; i < uploadedFiles.length; i++) {
+        try {
+            const { blob, name } = await processImage(uploadedFiles[i], settings);
+            URL.revokeObjectURL(uploadedFiles[i].processedUrl);
+            uploadedFiles[i].processedUrl = URL.createObjectURL(blob);
+            uploadedFiles[i].processedBlob = blob;
+            uploadedFiles[i].name = name;
+            updateProgress(((i + 1) / uploadedFiles.length) * 100);
+        } catch (error) {
+            console.error('Error processing image:', error);
+            alert(`Error processing ${uploadedFiles[i].name}.`); break;
+        }
+    }
+    renderFileList();
+    updatePreview();
+    hideProgress();
+}
