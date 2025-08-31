@@ -1,3 +1,46 @@
+// 等待整个 HTML 文档加载完成后再执行脚本
+document.addEventListener('DOMContentLoaded', () => {
+
+    /**
+     * @description 一个通用的函数，用于将滑块（input[type="range"]）与一个文本元素（如 <span>）连接起来。
+     * @param {string} sliderId - 滑块元素的 ID。
+     * @param {string} displayId - 用于显示滑块值的元素的 ID。
+     */
+    function setupSlider(sliderId, displayId) {
+        // 通过 ID 获取滑块元素
+        const slider = document.getElementById(sliderId);
+        // 通过 ID 获取用于显示值的元素
+        const display = document.getElementById(displayId);
+
+        // 检查两个元素是否都存在，以避免错误
+        if (slider && display) {
+            // 为滑块添加 'input' 事件监听器。
+            // 'input' 事件会在滑块的值改变时立即触发，效果比 'change' 事件（松开鼠标时才触发）更好。
+            slider.addEventListener('input', () => {
+                // 将显示元素的文本内容更新为滑块的当前值
+                display.textContent = slider.value;
+            });
+        }
+    }
+
+    // --- 初始化所有的滑块 ---
+    // 格式与质量
+    setupSlider('qualitySlider', 'qualityValue');
+
+    // 图片美化
+    setupSlider('brightnessSlider', 'brightnessValue');
+    setupSlider('contrastSlider', 'contrastValue');
+    setupSlider('saturateSlider', 'saturateValue');
+    setupSlider('grayscaleSlider', 'grayscaleValue');
+
+    // 水印设置
+    setupSlider('fontSizeSlider', 'fontSizeValue');
+    setupSlider('opacitySlider', 'opacityValue');
+    
+    // --- 在这里继续添加你项目其他的 JavaScript 代码 ---
+
+});
+
 // 全局变量
 let currentLanguage = 'zh';
 let uploadedFiles = []; // 存储上传的文件对象 { file, originalUrl, processedUrl, processedBlob, name }
