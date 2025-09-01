@@ -422,5 +422,6 @@ body {
 .white-link:hover,
 .white-link:active {
   color: white;
+  font-size: 12px;
   text-decoration: none;
 }
