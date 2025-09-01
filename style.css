@@ -416,3 +416,11 @@ body {
         font-size: 2rem;
     }
 }
+
+.white-link:link,
+.white-link:visited,
+.white-link:hover,
+.white-link:active {
+  color: white;
+  text-decoration: none;
+}
